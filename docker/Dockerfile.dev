@@ -1,0 +1,7 @@
+FROM golang
+
+WORKDIR /src/
+
+COPY chats-service/go.mod chats-service/go.sum /src/
+
+RUN go mod download
