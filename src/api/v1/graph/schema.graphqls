@@ -1,0 +1,144 @@
+enum ChatType {
+	group
+	user
+}
+
+enum FileType {
+  images
+  videos
+  documents
+  music
+  other
+  all
+}
+
+enum MessageType {
+  text
+  event
+  call
+  voice
+  circle
+}
+
+type Reaction {
+  content: String!
+  userId: ID!
+}
+
+input FileObjectRequest {
+	filename: String!
+	contentType: String!
+	content: String!
+}
+
+type FileObjectResponse {
+	filename: String!
+	contentType: String!
+	fileURL: String!
+}
+
+type PaginatedFiles {
+  page: Int!
+  numPages: Int!
+  perPage: Int!
+  data: [FileObjectResponse!]
+}
+
+type Message {
+	id: ID!
+  type: MessageType!
+	senderId: ID
+	chatId: ID!
+  content: String
+	voiceURL: String
+	circleURL: String
+	replyToId: ID
+	readedBy: [ID!]
+  reactions: [Reaction!]
+  datetine: String!
+  attachments: [FileObjectResponse!]
+  mentioned: [ID!]
+  datetime: String!
+}
+
+type Chat {
+	id: ID!
+	avatarURL: String!
+	title: String!
+	type: ChatType!
+	members: [ID!]
+	isArchived: Boolean!
+  ownerId: ID!
+  admins: [ID!]
+}
+
+type PaginatedChats {
+  page: Int!
+  numPages: Int!
+  perPage: Int!
+  data: [Chat!]
+}
+
+input CreateChatRequest {
+	avatar: FileObjectRequest
+	title: String
+	members: [ID!]
+	user: ID
+}
+
+input EditChatRequest {
+  avatar: FileObjectRequest
+  title: String
+}
+
+input CreateMessageRequest {
+	chatId: ID!
+  type: MessageType!
+	content: String
+	voice: String
+	attachments: [FileObjectRequest!]
+	replyToId: ID
+	mentioned: [ID!]
+	circle: String
+}
+
+type CreateReactionRequest {
+  content: String!
+  messageId: ID!
+}
+
+input ChangeMessageRequest {
+  content: String
+  attachments: [FileObjectRequest!]
+  mentioned: [ID]
+}
+
+type PaginatedMessages {
+  page: Int!
+  numPages: Int!
+  perPage: Int!
+  data: [Message!]
+}
+
+type Query {
+	getChatMessages(chatId: ID!, page: Int, perPage: Int): PaginatedMessages!
+	getChats(page: Int, perPage: Int): PaginatedChats!
+	searchChats(query: String!, page: Int, perPage: Int): PaginatedChats!
+	getChat(chatId: ID!): Chat!
+  getChatAttachments(chatId: ID!, fileType: FileType!): FileObjectResponse!
+	searchMessages(query: String!, chatId: Int!, page: Int, perPage: Int): PaginatedMessages!
+}
+
+type Mutation {
+	createMessage(request: CreateMessageRequest!): Message!
+  editMessage(chatId: ID!, messageId: ID!, request: ChangeMessageRequest!): Message!
+  createChat(request: CreateChatRequest!): Chat!
+  addChatMembers(chatId: ID!, members: [ID!]): Chat!
+  addChatAdmins(chatId: ID!, admins: [ID!]): Chat!
+  editChat(chatId: ID!, request: EditChatRequest!): Chat!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}
