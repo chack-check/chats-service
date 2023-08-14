@@ -25,7 +25,7 @@ func (usersGrpc *UsersGrpc) Connect() {
 
 	connection, error := grpc.Dial(dsl, opts)
 	if error != nil {
-		log.Fatalf("Error when connection to users grpc: %s", error)
+		log.Printf("Error when connection to users grpc: %s", error)
 	}
 
 	usersGrpc.client = pb.NewUsersClient(connection)
@@ -33,8 +33,8 @@ func (usersGrpc *UsersGrpc) Connect() {
 
 func (usersGrpc *UsersGrpc) GetUserByToken(token string) (*pb.UserResponse, error) {
 	user, err := usersGrpc.client.GetUserByToken(context.Background(), &pb.GetUserByTokenRequest{Token: token})
-	if err != nil {
-		return nil, err
+	if err != nil || user == nil {
+		return nil, fmt.Errorf("Error when getting user: %v", err)
 	}
 
 	return user, nil
@@ -53,7 +53,7 @@ func GetUsersGrpc() *UsersGrpc {
 	host := os.Getenv("USERS_GRPC_HOST")
 	port, err := strconv.Atoi(os.Getenv("USERS_GRPC_PORT"))
 	if err != nil {
-		log.Fatalf("Error when parsing USERS_GRPC_PORT env var: %s", err)
+		log.Printf("Error when parsing USERS_GRPC_PORT env var: %s", err)
 	}
 
 	usersGrpc := UsersGrpc{Host: host, Port: port}

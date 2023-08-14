@@ -1,6 +1,14 @@
 version: "3"
 
 services:
+  chats-db:
+    image: postgres
+    env_file:
+      - .env.dev
+    networks:
+      - chack-check-network
+    volumes:
+      - chats-pgdata:/var/lib/postgresql/data
   chats-service:
     build:
       dockerfile: docker/Dockerfile.dev
@@ -10,12 +18,15 @@ services:
       - 8001:8001
     env_file:
       - .env.dev
-    volumes:
-      - ./chats-service:/src
     networks:
       - chack-check-network
+    depends_on:
+      - chats-db
 
 networks:
   chack-check-network:
     name: chack-check-network
     external: true
+
+volumes:
+  chats-pgdata:

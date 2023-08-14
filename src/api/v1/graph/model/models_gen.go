@@ -11,41 +11,41 @@ import (
 type ChangeMessageRequest struct {
 	Content     *string              `json:"content,omitempty"`
 	Attachments []*FileObjectRequest `json:"attachments,omitempty"`
-	Mentioned   []*string            `json:"mentioned,omitempty"`
+	Mentioned   []*int               `json:"mentioned,omitempty"`
 }
 
 type Chat struct {
-	ID         string   `json:"id"`
+	ID         int      `json:"id"`
 	AvatarURL  string   `json:"avatarURL"`
 	Title      string   `json:"title"`
 	Type       ChatType `json:"type"`
-	Members    []string `json:"members,omitempty"`
+	Members    []int    `json:"members,omitempty"`
 	IsArchived bool     `json:"isArchived"`
-	OwnerID    string   `json:"ownerId"`
-	Admins     []string `json:"admins,omitempty"`
+	OwnerID    int      `json:"ownerId"`
+	Admins     []int    `json:"admins,omitempty"`
 }
 
 type CreateChatRequest struct {
 	Avatar  *FileObjectRequest `json:"avatar,omitempty"`
 	Title   *string            `json:"title,omitempty"`
-	Members []string           `json:"members,omitempty"`
-	User    *string            `json:"user,omitempty"`
+	Members []int              `json:"members,omitempty"`
+	User    *int               `json:"user,omitempty"`
 }
 
 type CreateMessageRequest struct {
-	ChatID      string               `json:"chatId"`
+	ChatID      int                  `json:"chatId"`
 	Type        MessageType          `json:"type"`
 	Content     *string              `json:"content,omitempty"`
 	Voice       *string              `json:"voice,omitempty"`
 	Attachments []*FileObjectRequest `json:"attachments,omitempty"`
-	ReplyToID   *string              `json:"replyToId,omitempty"`
-	Mentioned   []string             `json:"mentioned,omitempty"`
+	ReplyToID   *int                 `json:"replyToId,omitempty"`
+	Mentioned   []int                `json:"mentioned,omitempty"`
 	Circle      *string              `json:"circle,omitempty"`
 }
 
 type CreateReactionRequest struct {
 	Content   string `json:"content"`
-	MessageID string `json:"messageId"`
+	MessageID int    `json:"messageId"`
 }
 
 type EditChatRequest struct {
@@ -66,19 +66,19 @@ type FileObjectResponse struct {
 }
 
 type Message struct {
-	ID          string                `json:"id"`
+	ID          int                   `json:"id"`
 	Type        MessageType           `json:"type"`
-	SenderID    *string               `json:"senderId,omitempty"`
-	ChatID      string                `json:"chatId"`
+	SenderID    *int                  `json:"senderId,omitempty"`
+	ChatID      int                   `json:"chatId"`
 	Content     *string               `json:"content,omitempty"`
 	VoiceURL    *string               `json:"voiceURL,omitempty"`
 	CircleURL   *string               `json:"circleURL,omitempty"`
-	ReplyToID   *string               `json:"replyToId,omitempty"`
-	ReadedBy    []string              `json:"readedBy,omitempty"`
+	ReplyToID   *int                  `json:"replyToId,omitempty"`
+	ReadedBy    []int                 `json:"readedBy,omitempty"`
 	Reactions   []*Reaction           `json:"reactions,omitempty"`
 	Datetine    string                `json:"datetine"`
 	Attachments []*FileObjectResponse `json:"attachments,omitempty"`
-	Mentioned   []string              `json:"mentioned,omitempty"`
+	Mentioned   []int                 `json:"mentioned,omitempty"`
 	Datetime    string                `json:"datetime"`
 }
 
@@ -105,7 +105,7 @@ type PaginatedMessages struct {
 
 type Reaction struct {
 	Content string `json:"content"`
-	UserID  string `json:"userId"`
+	UserID  int    `json:"userId"`
 }
 
 type ChatType string

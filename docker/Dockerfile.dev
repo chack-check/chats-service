@@ -2,6 +2,12 @@ FROM golang
 
 WORKDIR /src/
 
-COPY chats-service/go.mod chats-service/go.sum /src/
+COPY src/go.mod src/go.sum /src/
 
 RUN go mod download
+
+COPY src/ /src/
+
+RUN go build -o server .
+
+ENTRYPOINT [ "./server" ]

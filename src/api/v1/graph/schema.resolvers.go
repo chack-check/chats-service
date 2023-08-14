@@ -9,6 +9,9 @@ import (
 	"fmt"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
+	"github.com/chack-check/chats-service/api/v1/models"
+	"github.com/chack-check/chats-service/api/v1/services"
+	"github.com/chack-check/chats-service/api/v1/utils"
 )
 
 // CreateMessage is the resolver for the createMessage field.
@@ -17,7 +20,7 @@ func (r *mutationResolver) CreateMessage(ctx context.Context, request model.Crea
 }
 
 // EditMessage is the resolver for the editMessage field.
-func (r *mutationResolver) EditMessage(ctx context.Context, chatID string, messageID string, request model.ChangeMessageRequest) (*model.Message, error) {
+func (r *mutationResolver) EditMessage(ctx context.Context, chatID int, messageID int, request model.ChangeMessageRequest) (*model.Message, error) {
 	panic(fmt.Errorf("not implemented: EditMessage - editMessage"))
 }
 
@@ -27,22 +30,22 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 }
 
 // AddChatMembers is the resolver for the addChatMembers field.
-func (r *mutationResolver) AddChatMembers(ctx context.Context, chatID string, members []string) (*model.Chat, error) {
+func (r *mutationResolver) AddChatMembers(ctx context.Context, chatID int, members []int) (*model.Chat, error) {
 	panic(fmt.Errorf("not implemented: AddChatMembers - addChatMembers"))
 }
 
 // AddChatAdmins is the resolver for the addChatAdmins field.
-func (r *mutationResolver) AddChatAdmins(ctx context.Context, chatID string, admins []string) (*model.Chat, error) {
+func (r *mutationResolver) AddChatAdmins(ctx context.Context, chatID int, admins []int) (*model.Chat, error) {
 	panic(fmt.Errorf("not implemented: AddChatAdmins - addChatAdmins"))
 }
 
 // EditChat is the resolver for the editChat field.
-func (r *mutationResolver) EditChat(ctx context.Context, chatID string, request model.EditChatRequest) (*model.Chat, error) {
+func (r *mutationResolver) EditChat(ctx context.Context, chatID int, request model.EditChatRequest) (*model.Chat, error) {
 	panic(fmt.Errorf("not implemented: EditChat - editChat"))
 }
 
 // GetChatMessages is the resolver for the getChatMessages field.
-func (r *queryResolver) GetChatMessages(ctx context.Context, chatID string, page *int, perPage *int) (*model.PaginatedMessages, error) {
+func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error) {
 	panic(fmt.Errorf("not implemented: GetChatMessages - getChatMessages"))
 }
 
@@ -57,12 +60,28 @@ func (r *queryResolver) SearchChats(ctx context.Context, query string, page *int
 }
 
 // GetChat is the resolver for the getChat field.
-func (r *queryResolver) GetChat(ctx context.Context, chatID string) (*model.Chat, error) {
-	panic(fmt.Errorf("not implemented: GetChat - getChat"))
+func (r *queryResolver) GetChat(ctx context.Context, chatID int) (*model.Chat, error) {
+	user := ctx.Value("user")
+
+	if user == nil {
+		return nil, fmt.Errorf("Incorrect token")
+	}
+
+	fmt.Printf("%s - %T", user, user)
+
+	chatsManager := services.ChatsManager{ChatsQueries: &models.ChatsQueries{}}
+	chat, err := chatsManager.GetConcrete(uint(chatID))
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := utils.DbChatToSchema(chat)
+	return response, nil
 }
 
 // GetChatAttachments is the resolver for the getChatAttachments field.
-func (r *queryResolver) GetChatAttachments(ctx context.Context, chatID string, fileType model.FileType) (*model.FileObjectResponse, error) {
+func (r *queryResolver) GetChatAttachments(ctx context.Context, chatID int, fileType model.FileType) (*model.FileObjectResponse, error) {
 	panic(fmt.Errorf("not implemented: GetChatAttachments - getChatAttachments"))
 }
 
