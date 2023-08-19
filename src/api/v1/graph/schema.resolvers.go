@@ -12,6 +12,7 @@ import (
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/services"
 	"github.com/chack-check/chats-service/api/v1/utils"
+	"github.com/chack-check/chats-service/protousers"
 )
 
 // CreateMessage is the resolver for the createMessage field.
@@ -26,7 +27,27 @@ func (r *mutationResolver) EditMessage(ctx context.Context, chatID int, messageI
 
 // CreateChat is the resolver for the createChat field.
 func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateChatRequest) (*model.Chat, error) {
-	panic(fmt.Errorf("not implemented: CreateChat - createChat"))
+	user, _ := ctx.Value("user").(*protousers.UserResponse)
+	if err := utils.UserRequired(user); err != nil {
+		return nil, err
+	}
+
+	var members []int64
+	for _, v := range request.Members {
+		members = append(members, int64(v))
+	}
+
+	chat, err := utils.ChatRequestToDbChat(&request)
+	if err != nil {
+		return nil, err
+	}
+
+	chatsManager := services.NewChatsManager()
+	if err = chatsManager.Create(chat, user, uint(*request.User)); err != nil {
+		return nil, err
+	}
+
+	return utils.DbChatToSchema(chat), nil
 }
 
 // AddChatMembers is the resolver for the addChatMembers field.
@@ -51,7 +72,24 @@ func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *i
 
 // GetChats is the resolver for the getChats field.
 func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (*model.PaginatedChats, error) {
-	panic(fmt.Errorf("not implemented: GetChats - getChats"))
+	user, _ := ctx.Value("user").(*protousers.UserResponse)
+	if err := utils.UserRequired(user); err != nil {
+		return nil, err
+	}
+
+	chatsManager := services.ChatsManager{ChatsQueries: &models.ChatsQueries{}}
+	paginatedChats := chatsManager.GetAll(user, page, perPage)
+	var chats []*model.Chat
+	for _, chat := range *paginatedChats.Data {
+		chats = append(chats, utils.DbChatToSchema(&chat))
+	}
+
+	return &model.PaginatedChats{
+		Page:     paginatedChats.Page,
+		NumPages: paginatedChats.PagesCount,
+		PerPage:  paginatedChats.PerPage,
+		Data:     chats,
+	}, nil
 }
 
 // SearchChats is the resolver for the searchChats field.
@@ -61,16 +99,13 @@ func (r *queryResolver) SearchChats(ctx context.Context, query string, page *int
 
 // GetChat is the resolver for the getChat field.
 func (r *queryResolver) GetChat(ctx context.Context, chatID int) (*model.Chat, error) {
-	user := ctx.Value("user")
-
-	if user == nil {
-		return nil, fmt.Errorf("Incorrect token")
+	user, _ := ctx.Value("user").(*protousers.UserResponse)
+	if err := utils.UserRequired(user); err != nil {
+		return nil, err
 	}
 
-	fmt.Printf("%s - %T", user, user)
-
 	chatsManager := services.ChatsManager{ChatsQueries: &models.ChatsQueries{}}
-	chat, err := chatsManager.GetConcrete(uint(chatID))
+	chat, err := chatsManager.GetConcrete(uint(chatID), user)
 
 	if err != nil {
 		return nil, err

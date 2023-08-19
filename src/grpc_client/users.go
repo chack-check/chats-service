@@ -19,6 +19,8 @@ type UsersGrpc struct {
 	client pb.UsersClient
 }
 
+var UsersGrpcClient *UsersGrpc = GetUsersGrpc()
+
 func (usersGrpc *UsersGrpc) Connect() {
 	opts := grpc.WithTransportCredentials(insecure.NewCredentials())
 	dsl := fmt.Sprintf("%s:%d", usersGrpc.Host, usersGrpc.Port)
@@ -33,17 +35,18 @@ func (usersGrpc *UsersGrpc) Connect() {
 
 func (usersGrpc *UsersGrpc) GetUserByToken(token string) (*pb.UserResponse, error) {
 	user, err := usersGrpc.client.GetUserByToken(context.Background(), &pb.GetUserByTokenRequest{Token: token})
+
 	if err != nil || user == nil {
-		return nil, fmt.Errorf("Error when getting user: %v", err)
+		return user, fmt.Errorf("Error when getting user: %v", err)
 	}
 
 	return user, nil
 }
 
-func (UsersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
-	user, err := UsersGrpc.client.GetUserById(context.Background(), &pb.GetUserByIdRequest{Id: int32(id)})
-	if err != nil {
-		return nil, err
+func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
+	user, err := usersGrpc.client.GetUserById(context.Background(), &pb.GetUserByIdRequest{Id: int32(id)})
+	if err != nil || user == nil {
+		return user, fmt.Errorf("Error when getting user: %v", err)
 	}
 
 	return user, nil

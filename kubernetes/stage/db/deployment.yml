@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chats-postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chats-service-db
+  template:
+    metadata:
+      labels:
+        app: chats-service-db
+    spec:
+      containers:
+        - name: chats-postgres-container
+          image: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: chats-postgres-credentials
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: chats-postgres-credentials
+                  key: password
+            - name: POSTGRES_DB
+              value: chats_db
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgres/data
+              name: db-data
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: chats-db-persistent-volume-claim
