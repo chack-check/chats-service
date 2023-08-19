@@ -25,13 +25,13 @@ spec:
             - name: USERS_GRPC_HOST
               value: "users-service"
             - name: USERS_GRPC_PORT
-              value: 9090
+              value: "9090"
             - name: PORT
-              value: 8000
+              value: "8000"
             - name: APP_DATABASE_HOST
               value: chats-postgres-service
             - name: APP_DATABASE_PORT
-              value: 5432
+              value: "5432"
             - name: APP_DATABASE_USER
               valueFrom:
                 secretKeyRef:
