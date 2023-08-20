@@ -32,11 +32,6 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 		return nil, err
 	}
 
-	var members []int64
-	for _, v := range request.Members {
-		members = append(members, int64(v))
-	}
-
 	chat, err := utils.ChatRequestToDbChat(&request)
 	if err != nil {
 		return nil, err

@@ -13,7 +13,7 @@ spec:
         app: chats-service-db
     spec:
       containers:
-        - name: postgres-container
+        - name: chats-db
           image: postgres
           env:
             - name: POSTGRES_USER
@@ -34,9 +34,9 @@ spec:
           ports:
             - containerPort: 5432
           volumeMounts:
-            - mountPath: /var/lib/postgres/data
+            - mountPath: /var/lib/postgresql/data
               name: db-data
       volumes:
         - name: db-data
           persistentVolumeClaim:
-            claimName: chats-db-persistent-volume-claim
+            claimName: chats-pv-claim
