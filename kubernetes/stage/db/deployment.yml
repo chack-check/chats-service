@@ -15,21 +15,9 @@ spec:
       containers:
         - name: chats-db
           image: postgres
-          env:
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: chats-postgres-credentials
-                  key: user
-
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: chats-postgres-credentials
-                  key: password
-
-            - name: POSTGRES_DB
-              value: chats_db
+          envFrom:
+            - configMapRef:
+                name: chats-db-configmap
 
           ports:
             - containerPort: 5432
