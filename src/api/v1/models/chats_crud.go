@@ -44,7 +44,7 @@ func (queries *ChatsQueries) GetAllWithMember(userId uint, page *int, perPage *i
 
 func (queries *ChatsQueries) GetAllWithMemberCount(userId uint) *int64 {
 	var count int64
-	database.DB.Where("? = ANY(members)", userId).Count(&count)
+	database.DB.Model(&Chat{}).Where("? = ANY(members)", userId).Count(&count)
 	return &count
 }
 

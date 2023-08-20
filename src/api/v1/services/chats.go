@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/schemas"
@@ -26,15 +25,15 @@ func (manager *ChatsManager) GetConcrete(chatID uint, user *protousers.UserRespo
 
 func (manager *ChatsManager) GetAll(user *protousers.UserResponse, page *int, perPage *int) *schemas.PaginatedResponse[models.Chat] {
 	count := manager.ChatsQueries.GetAllWithMemberCount(uint(user.Id))
-	pagesCount := math.Ceil(float64(*count) / float64(*perPage))
+	countValue := *count
 	chats := manager.ChatsQueries.GetAllWithMember(uint(user.Id), page, perPage)
-	return &schemas.PaginatedResponse[models.Chat]{Page: *page, PerPage: *perPage, PagesCount: int(pagesCount), Data: chats}
+	paginatedResponse := schemas.NewPaginatedResponse[models.Chat](*page, *perPage, int(countValue), *chats)
+	return &paginatedResponse
 }
 
 func (manager *ChatsManager) createGroupChat(chat *models.Chat, user *protousers.UserResponse) error {
 	chat.OwnerId = uint(user.Id)
 	chat.Type = "group"
-	chat.AvatarURL = "https://google.com"
 
 	if err := manager.ChatsQueries.Create(chat); err != nil {
 		return err

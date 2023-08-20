@@ -18,7 +18,7 @@ import (
 func main() {
 	log.SetFlags(log.Lshortfile)
 
-	database.DB.AutoMigrate(&models.Chat{})
+	database.DB.AutoMigrate(&models.Chat{}, &models.Message{}, &models.Reaction{})
 
 	router := chi.NewRouter()
 

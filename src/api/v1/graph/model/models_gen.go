@@ -9,9 +9,9 @@ import (
 )
 
 type ChangeMessageRequest struct {
-	Content     *string              `json:"content,omitempty"`
-	Attachments []*FileObjectRequest `json:"attachments,omitempty"`
-	Mentioned   []*int               `json:"mentioned,omitempty"`
+	Content     *string  `json:"content,omitempty"`
+	Attachments []string `json:"attachments,omitempty"`
+	Mentioned   []*int   `json:"mentioned,omitempty"`
 }
 
 type Chat struct {
@@ -26,21 +26,21 @@ type Chat struct {
 }
 
 type CreateChatRequest struct {
-	Avatar  *FileObjectRequest `json:"avatar,omitempty"`
-	Title   *string            `json:"title,omitempty"`
-	Members []int              `json:"members,omitempty"`
-	User    *int               `json:"user,omitempty"`
+	AvatarURL *string `json:"avatarURL,omitempty"`
+	Title     *string `json:"title,omitempty"`
+	Members   []int   `json:"members,omitempty"`
+	User      *int    `json:"user,omitempty"`
 }
 
 type CreateMessageRequest struct {
-	ChatID      int                  `json:"chatId"`
-	Type        MessageType          `json:"type"`
-	Content     *string              `json:"content,omitempty"`
-	Voice       *string              `json:"voice,omitempty"`
-	Attachments []*FileObjectRequest `json:"attachments,omitempty"`
-	ReplyToID   *int                 `json:"replyToId,omitempty"`
-	Mentioned   []int                `json:"mentioned,omitempty"`
-	Circle      *string              `json:"circle,omitempty"`
+	ChatID      int         `json:"chatId"`
+	Type        MessageType `json:"type"`
+	Content     *string     `json:"content,omitempty"`
+	Voice       *string     `json:"voice,omitempty"`
+	Attachments []string    `json:"attachments,omitempty"`
+	ReplyToID   *int        `json:"replyToId,omitempty"`
+	Mentioned   []int       `json:"mentioned,omitempty"`
+	Circle      *string     `json:"circle,omitempty"`
 }
 
 type CreateReactionRequest struct {
@@ -49,14 +49,8 @@ type CreateReactionRequest struct {
 }
 
 type EditChatRequest struct {
-	Avatar *FileObjectRequest `json:"avatar,omitempty"`
-	Title  *string            `json:"title,omitempty"`
-}
-
-type FileObjectRequest struct {
-	Filename    string `json:"filename"`
-	ContentType string `json:"contentType"`
-	Content     string `json:"content"`
+	AvatarURL *string `json:"avatarURL,omitempty"`
+	Title     *string `json:"title,omitempty"`
 }
 
 type FileObjectResponse struct {

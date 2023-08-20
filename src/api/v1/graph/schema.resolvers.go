@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
-	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/services"
 	"github.com/chack-check/chats-service/api/v1/utils"
 	"github.com/chack-check/chats-service/protousers"
@@ -17,7 +16,25 @@ import (
 
 // CreateMessage is the resolver for the createMessage field.
 func (r *mutationResolver) CreateMessage(ctx context.Context, request model.CreateMessageRequest) (*model.Message, error) {
-	panic(fmt.Errorf("not implemented: CreateMessage - createMessage"))
+	user, _ := ctx.Value("user").(*protousers.UserResponse)
+	if err := utils.UserRequired(user); err != nil {
+		return nil, err
+	}
+
+	chatsManager := services.NewChatsManager()
+	chat, err := chatsManager.GetConcrete(uint(request.ChatID), user)
+	if err != nil {
+		return nil, err
+	}
+
+	messagesManager := services.NewMessagesManager()
+	message, err := messagesManager.CreateMessage(&request, chat, user)
+	if err != nil {
+		return nil, err
+	}
+
+	messageSchema := utils.DbMessageToSchema(*message)
+	return &messageSchema, nil
 }
 
 // EditMessage is the resolver for the editMessage field.
@@ -38,11 +55,14 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 	}
 
 	chatsManager := services.NewChatsManager()
-	if err = chatsManager.Create(chat, user, uint(*request.User)); err != nil {
-		return nil, err
+	if request.User == nil {
+		err = chatsManager.Create(chat, user, 0)
+	} else {
+		err = chatsManager.Create(chat, user, uint(*request.User))
 	}
 
-	return utils.DbChatToSchema(chat), nil
+	chatSchema := utils.DbChatToSchema(*chat)
+	return &chatSchema, nil
 }
 
 // AddChatMembers is the resolver for the addChatMembers field.
@@ -62,7 +82,31 @@ func (r *mutationResolver) EditChat(ctx context.Context, chatID int, request mod
 
 // GetChatMessages is the resolver for the getChatMessages field.
 func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error) {
-	panic(fmt.Errorf("not implemented: GetChatMessages - getChatMessages"))
+	user, _ := ctx.Value("user").(*protousers.UserResponse)
+	if err := utils.UserRequired(user); err != nil {
+		return nil, err
+	}
+
+	chatsManager := services.NewChatsManager()
+	chat, err := chatsManager.GetConcrete(uint(chatID), user)
+	if err != nil {
+		return nil, err
+	}
+
+	messagesManager := services.NewMessagesManager()
+	paginatedMessages := messagesManager.GetChatAll(chat.ID, page, perPage)
+	var messages []*model.Message
+	for _, message := range *paginatedMessages.Data {
+		messageSchema := utils.DbMessageToSchema(message)
+		messages = append(messages, &messageSchema)
+	}
+
+	return &model.PaginatedMessages{
+		Page:     paginatedMessages.Page,
+		NumPages: paginatedMessages.PagesCount,
+		PerPage:  paginatedMessages.PerPage,
+		Data:     messages,
+	}, nil
 }
 
 // GetChats is the resolver for the getChats field.
@@ -72,11 +116,12 @@ func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (
 		return nil, err
 	}
 
-	chatsManager := services.ChatsManager{ChatsQueries: &models.ChatsQueries{}}
+	chatsManager := services.NewChatsManager()
 	paginatedChats := chatsManager.GetAll(user, page, perPage)
 	var chats []*model.Chat
 	for _, chat := range *paginatedChats.Data {
-		chats = append(chats, utils.DbChatToSchema(&chat))
+		chatSchema := utils.DbChatToSchema(chat)
+		chats = append(chats, &chatSchema)
 	}
 
 	return &model.PaginatedChats{
@@ -99,15 +144,15 @@ func (r *queryResolver) GetChat(ctx context.Context, chatID int) (*model.Chat, e
 		return nil, err
 	}
 
-	chatsManager := services.ChatsManager{ChatsQueries: &models.ChatsQueries{}}
+	chatsManager := services.NewChatsManager()
 	chat, err := chatsManager.GetConcrete(uint(chatID), user)
 
 	if err != nil {
 		return nil, err
 	}
 
-	response := utils.DbChatToSchema(chat)
-	return response, nil
+	response := utils.DbChatToSchema(*chat)
+	return &response, nil
 }
 
 // GetChatAttachments is the resolver for the getChatAttachments field.

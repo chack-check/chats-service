@@ -25,12 +25,6 @@ type Reaction {
   userId: Int!
 }
 
-input FileObjectRequest {
-	filename: String!
-	contentType: String!
-	content: String!
-}
-
 type FileObjectResponse {
 	filename: String!
 	contentType: String!
@@ -80,14 +74,14 @@ type PaginatedChats {
 }
 
 input CreateChatRequest {
-	avatar: FileObjectRequest
+	avatarURL: String
 	title: String
 	members: [Int!]
 	user: Int
 }
 
 input EditChatRequest {
-  avatar: FileObjectRequest
+  avatarURL: String
   title: String
 }
 
@@ -96,7 +90,7 @@ input CreateMessageRequest {
   type: MessageType!
 	content: String
 	voice: String
-	attachments: [FileObjectRequest!]
+	attachments: [String!]
 	replyToId: Int
 	mentioned: [Int!]
 	circle: String
@@ -109,7 +103,7 @@ type CreateReactionRequest {
 
 input ChangeMessageRequest {
   content: String
-  attachments: [FileObjectRequest!]
+  attachments: [String!]
   mentioned: [Int]
 }
 

@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.17.36
+	github.com/go-chi/chi v1.5.4
 	github.com/lib/pq v1.10.9
 	github.com/vektah/gqlparser/v2 v2.5.8
 	google.golang.org/grpc v1.57.0
@@ -14,8 +15,6 @@ require (
 
 require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
-	github.com/go-chi/chi v1.5.4 // indirect
-	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.3 // indirect

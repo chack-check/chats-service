@@ -604,7 +604,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateChatRequest,
 		ec.unmarshalInputCreateMessageRequest,
 		ec.unmarshalInputEditChatRequest,
-		ec.unmarshalInputFileObjectRequest,
 	)
 	first := true
 
@@ -5699,7 +5698,7 @@ func (ec *executionContext) unmarshalInputChangeMessageRequest(ctx context.Conte
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("attachments"))
-			data, err := ec.unmarshalOFileObjectRequest2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectRequestᚄ(ctx, v)
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5726,22 +5725,22 @@ func (ec *executionContext) unmarshalInputCreateChatRequest(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"avatar", "title", "members", "user"}
+	fieldsInOrder := [...]string{"avatarURL", "title", "members", "user"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "avatar":
+		case "avatarURL":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatar"))
-			data, err := ec.unmarshalOFileObjectRequest2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectRequest(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatarURL"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Avatar = data
+			it.AvatarURL = data
 		case "title":
 			var err error
 
@@ -5829,7 +5828,7 @@ func (ec *executionContext) unmarshalInputCreateMessageRequest(ctx context.Conte
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("attachments"))
-			data, err := ec.unmarshalOFileObjectRequest2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectRequestᚄ(ctx, v)
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5874,22 +5873,22 @@ func (ec *executionContext) unmarshalInputEditChatRequest(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"avatar", "title"}
+	fieldsInOrder := [...]string{"avatarURL", "title"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "avatar":
+		case "avatarURL":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatar"))
-			data, err := ec.unmarshalOFileObjectRequest2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectRequest(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatarURL"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Avatar = data
+			it.AvatarURL = data
 		case "title":
 			var err error
 
@@ -5899,53 +5898,6 @@ func (ec *executionContext) unmarshalInputEditChatRequest(ctx context.Context, o
 				return it, err
 			}
 			it.Title = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputFileObjectRequest(ctx context.Context, obj interface{}) (model.FileObjectRequest, error) {
-	var it model.FileObjectRequest
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"filename", "contentType", "content"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "filename":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filename"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Filename = data
-		case "contentType":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contentType"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ContentType = data
-		case "content":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("content"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Content = data
 		}
 	}
 
@@ -7046,11 +6998,6 @@ func (ec *executionContext) unmarshalNEditChatRequest2githubᚗcomᚋchackᚑche
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNFileObjectRequest2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectRequest(ctx context.Context, v interface{}) (*model.FileObjectRequest, error) {
-	res, err := ec.unmarshalInputFileObjectRequest(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) marshalNFileObjectResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponse(ctx context.Context, sel ast.SelectionSet, v model.FileObjectResponse) graphql.Marshaler {
 	return ec._FileObjectResponse(ctx, sel, &v)
 }
@@ -7493,34 +7440,6 @@ func (ec *executionContext) marshalOChat2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋch
 	return ret
 }
 
-func (ec *executionContext) unmarshalOFileObjectRequest2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectRequestᚄ(ctx context.Context, v interface{}) ([]*model.FileObjectRequest, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]*model.FileObjectRequest, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNFileObjectRequest2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectRequest(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalOFileObjectRequest2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectRequest(ctx context.Context, v interface{}) (*model.FileObjectRequest, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputFileObjectRequest(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) marshalOFileObjectResponse2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponseᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FileObjectResponse) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -7738,6 +7657,44 @@ func (ec *executionContext) marshalOReaction2ᚕᚖgithubᚗcomᚋchackᚑcheck�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
 
 	for _, e := range ret {
 		if e == graphql.Null {
