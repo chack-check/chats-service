@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -11,18 +11,12 @@ import (
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/services"
 	"github.com/chack-check/chats-service/database"
+	"github.com/chack-check/chats-service/settings"
 	"github.com/go-chi/chi"
 )
 
-const defaultPort = "8000"
-
 func main() {
 	log.SetFlags(log.Lshortfile)
-	port := os.Getenv("PORT")
-
-	if port == "" {
-		port = defaultPort
-	}
 
 	database.DB.AutoMigrate(&models.Chat{})
 
@@ -35,6 +29,7 @@ func main() {
 
 	router.Handle("/api/v1/chats/query", srvV1)
 
-	log.Printf("Server has started on http://0.0.0.0:%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Printf("Server has started on http://0.0.0.0:%d", settings.Settings.PORT)
+	listen := fmt.Sprintf(":%d", settings.Settings.PORT)
+	log.Fatal(http.ListenAndServe(listen, router))
 }

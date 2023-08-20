@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"strconv"
 
 	pb "github.com/chack-check/chats-service/protousers"
+	"github.com/chack-check/chats-service/settings"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -53,13 +52,10 @@ func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 }
 
 func GetUsersGrpc() *UsersGrpc {
-	host := os.Getenv("USERS_GRPC_HOST")
-	port, err := strconv.Atoi(os.Getenv("USERS_GRPC_PORT"))
-	if err != nil {
-		log.Printf("Error when parsing USERS_GRPC_PORT env var: %s", err)
+	usersGrpc := UsersGrpc{
+		Host: settings.Settings.USERS_GRPC_HOST,
+		Port: settings.Settings.USERS_GRPC_PORT,
 	}
-
-	usersGrpc := UsersGrpc{Host: host, Port: port}
 	usersGrpc.Connect()
 	return &usersGrpc
 }
