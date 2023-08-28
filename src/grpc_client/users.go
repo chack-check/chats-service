@@ -42,6 +42,16 @@ func (usersGrpc *UsersGrpc) GetUserByToken(token string) (*pb.UserResponse, erro
 	return user, nil
 }
 
+func (UsersGrpc *UsersGrpc) GetUserByRefreshToken(token string) (*pb.UserResponse, error) {
+	user, err := UsersGrpc.client.GetUserByRefreshToken(context.Background(), &pb.GetUserByTokenRequest{Token: token})
+
+	if err != nil || user == nil {
+		return user, fmt.Errorf("Error when getting user: %v", err)
+	}
+
+	return user, nil
+}
+
 func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 	user, err := usersGrpc.client.GetUserById(context.Background(), &pb.GetUserByIdRequest{Id: int32(id)})
 	if err != nil || user == nil {
