@@ -1,12 +1,54 @@
 package services
 
 import (
+	"log"
+	"slices"
+
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/schemas"
 	"github.com/chack-check/chats-service/api/v1/utils"
 	"github.com/chack-check/chats-service/protousers"
+	"github.com/chack-check/chats-service/rabbit"
 )
+
+func getMessageEventFromMessage(message *models.Message, chat *models.Chat) *rabbit.MessageEvent {
+    members := []int{}
+    attachments := []string{}
+    mentioned := []int{}
+    readedBy := []int{}
+
+    for _, member := range chat.Members {
+        members = append(members, int(member))
+    }
+
+    for _, attachment := range message.Attachments {
+        attachments = append(attachments, string(attachment))
+    }
+
+    for _, ment := range message.Mentioned {
+        mentioned = append(mentioned, int(ment))
+    }
+
+    for _, reader := range message.ReadedBy {
+        readedBy = append(readedBy, int(reader))
+    }
+
+    return &rabbit.MessageEvent{
+        Type: "message",
+        IncludedUsers: members,
+        ChatID: int(message.ChatId),
+        SenderID: int(message.SenderId),
+        MessageType: message.Type,
+        Content: message.Content,
+        VoiceURL: message.VoiceURL,
+        CircleURL: message.CircleURL,
+        Attachments: attachments,
+        ReplyToID: int(message.ReplyToID),
+        Mentioned: mentioned,
+        ReadedBy: readedBy,
+    }
+}
 
 type MessagesManager struct {
 	MessagesQueries *models.MessagesQueries
@@ -97,6 +139,22 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 	if err := manager.MessagesQueries.Create(message); err != nil {
 		return nil, err
 	}
+
+	sendingIds := slices.DeleteFunc(
+		chat.Members,
+		func(id int64) bool { return id != int64(user.Id) },
+	)
+	sendingIds32 := []int32{}
+	for _, v := range sendingIds {
+		sendingIds32 = append(sendingIds32, int32(v))
+	}
+
+    messageEvent := getMessageEventFromMessage(message, chat)
+    err := rabbit.EventsRabbitConnection.SendMessageEvent(messageEvent)
+
+    if err != nil {
+        log.Printf("Error when publishing message event in queue: %v", err)
+    }
 
 	return message, nil
 }

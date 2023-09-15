@@ -11,12 +11,14 @@ import (
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/services"
 	"github.com/chack-check/chats-service/database"
+	"github.com/chack-check/chats-service/rabbit"
 	"github.com/chack-check/chats-service/settings"
 	"github.com/chack-check/chats-service/ws"
 	"github.com/go-chi/chi"
 )
 
 func main() {
+    defer rabbit.EventsRabbitConnection.Close()
 	log.SetFlags(log.Lshortfile)
 
 	database.DB.AutoMigrate(&models.Chat{}, &models.Message{}, &models.Reaction{})
