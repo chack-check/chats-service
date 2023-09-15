@@ -47,7 +47,7 @@ spec:
             - name: RABBIT_HOST
               value: rabbitmq
             - name: RABBIT_PORT
-              value: 5672
+              value: "5672"
             - name: RABBIT_USER
               valueFrom:
                 secretKeyRef:
