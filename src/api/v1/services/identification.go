@@ -2,37 +2,52 @@ package services
 
 import (
 	"context"
-	"log"
+	"encoding/json"
 	"net/http"
 	"strings"
 
-	"github.com/chack-check/chats-service/grpc_client"
-	"github.com/chack-check/chats-service/protousers"
+	"github.com/chack-check/chats-service/settings"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-func GetUserFromToken(tokenString string) (*protousers.UserResponse, error) {
-	user, err := grpc_client.UsersGrpcClient.GetUserByToken(tokenString)
-
-	if err != nil {
-		log.Printf("Error when getting user by token: %v", err)
-		return new(protousers.UserResponse), err
-	}
-
-	return user, nil
+type TokenSubject struct {
+	UserId   int    `json:"user_id"`
+	Username string `json:"username"`
 }
 
 func UserMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var user *protousers.UserResponse
 		authorization := r.Header["Authorization"]
 		ctx := r.Context()
 
 		if len(authorization) != 0 {
-			token := strings.Replace(r.Header["Authorization"][0], "Bearer ", "", 1)
-			user, _ = GetUserFromToken(token)
+			tokenString := strings.Replace(r.Header["Authorization"][0], "Bearer ", "", 1)
+			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+				return []byte(settings.Settings.SECRET_KEY), nil
+			})
+			if err == nil && token.Valid {
+				ctx = context.WithValue(r.Context(), "token", token)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
 		}
 
-		ctx = context.WithValue(r.Context(), "user", user)
+		ctx = context.WithValue(r.Context(), "token", nil)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func GetTokenSubject(token *jwt.Token) (TokenSubject, error) {
+	tokenSubject := TokenSubject{}
+	subject, err := token.Claims.GetSubject()
+	if err != nil {
+		return tokenSubject, err
+	}
+
+	err = json.Unmarshal([]byte(subject), tokenSubject)
+	if err != nil {
+		return tokenSubject, err
+	}
+
+	return tokenSubject, nil
 }

@@ -2,17 +2,23 @@ package utils
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
-	"github.com/chack-check/chats-service/protousers"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-func UserRequired(user *protousers.UserResponse) error {
-	if user == nil || user.Id == 0 {
+func UserRequired(token *jwt.Token) error {
+	if token == nil {
 		return fmt.Errorf("Incorrect token")
 	}
 
-	return nil
+	exp, err := token.Claims.GetExpirationTime()
+	if err == nil && token.Valid && exp.Unix() < time.Now().Unix() {
+		return nil
+	}
+
+	return fmt.Errorf("Incorrect token")
 }
 
 func ValidateTextMessage(message *model.CreateMessageRequest) error {

@@ -14,6 +14,7 @@ type BaseSettings struct {
 	APP_DATABASE_USER     string
 	APP_DATABASE_PASSWORD string
 	APP_DATABASE_NAME     string
+	SECRET_KEY            string
 }
 
 var Settings *BaseSettings = NewSettings()
@@ -59,6 +60,11 @@ func NewSettings() *BaseSettings {
 		panic("You need to specify APP_DATABASE_NAME environment variable")
 	}
 
+	secretKey := os.Getenv("SECRET_KEY")
+	if secretKey == "" {
+		panic("You need to specify SECRET_KEY environment variable")
+	}
+
 	return &BaseSettings{
 		PORT:                  port,
 		USERS_GRPC_HOST:       users_grpc_host,
@@ -68,5 +74,6 @@ func NewSettings() *BaseSettings {
 		APP_DATABASE_USER:     db_user,
 		APP_DATABASE_PASSWORD: db_password,
 		APP_DATABASE_NAME:     db_name,
+		SECRET_KEY:            secretKey,
 	}
 }

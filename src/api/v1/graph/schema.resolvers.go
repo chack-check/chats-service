@@ -11,24 +11,24 @@ import (
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/services"
 	"github.com/chack-check/chats-service/api/v1/utils"
-	"github.com/chack-check/chats-service/protousers"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // CreateMessage is the resolver for the createMessage field.
 func (r *mutationResolver) CreateMessage(ctx context.Context, request model.CreateMessageRequest) (*model.Message, error) {
-	user, _ := ctx.Value("user").(*protousers.UserResponse)
-	if err := utils.UserRequired(user); err != nil {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
 		return nil, err
 	}
 
 	chatsManager := services.NewChatsManager()
-	chat, err := chatsManager.GetConcrete(uint(request.ChatID), user)
+	chat, err := chatsManager.GetConcrete(uint(request.ChatID), token)
 	if err != nil {
 		return nil, err
 	}
 
 	messagesManager := services.NewMessagesManager()
-	message, err := messagesManager.CreateMessage(&request, chat, user)
+	message, err := messagesManager.CreateMessage(&request, chat, token)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +44,8 @@ func (r *mutationResolver) EditMessage(ctx context.Context, chatID int, messageI
 
 // CreateChat is the resolver for the createChat field.
 func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateChatRequest) (*model.Chat, error) {
-	user, _ := ctx.Value("user").(*protousers.UserResponse)
-	if err := utils.UserRequired(user); err != nil {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
 		return nil, err
 	}
 
@@ -56,9 +56,9 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 
 	chatsManager := services.NewChatsManager()
 	if request.User == nil {
-		err = chatsManager.Create(chat, user, 0)
+		err = chatsManager.Create(chat, token, 0)
 	} else {
-		err = chatsManager.Create(chat, user, uint(*request.User))
+		err = chatsManager.Create(chat, token, uint(*request.User))
 	}
 
 	chatSchema := utils.DbChatToSchema(*chat)
@@ -82,13 +82,13 @@ func (r *mutationResolver) EditChat(ctx context.Context, chatID int, request mod
 
 // GetChatMessages is the resolver for the getChatMessages field.
 func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error) {
-	user, _ := ctx.Value("user").(*protousers.UserResponse)
-	if err := utils.UserRequired(user); err != nil {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
 		return nil, err
 	}
 
 	chatsManager := services.NewChatsManager()
-	chat, err := chatsManager.GetConcrete(uint(chatID), user)
+	chat, err := chatsManager.GetConcrete(uint(chatID), token)
 	if err != nil {
 		return nil, err
 	}
@@ -111,13 +111,13 @@ func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *i
 
 // GetChats is the resolver for the getChats field.
 func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (*model.PaginatedChats, error) {
-	user, _ := ctx.Value("user").(*protousers.UserResponse)
-	if err := utils.UserRequired(user); err != nil {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
 		return nil, err
 	}
 
 	chatsManager := services.NewChatsManager()
-	paginatedChats := chatsManager.GetAll(user, page, perPage)
+	paginatedChats := chatsManager.GetAll(token, page, perPage)
 	var chats []*model.Chat
 	for _, chat := range *paginatedChats.Data {
 		chatSchema := utils.DbChatToSchema(chat)
@@ -139,13 +139,13 @@ func (r *queryResolver) SearchChats(ctx context.Context, query string, page *int
 
 // GetChat is the resolver for the getChat field.
 func (r *queryResolver) GetChat(ctx context.Context, chatID int) (*model.Chat, error) {
-	user, _ := ctx.Value("user").(*protousers.UserResponse)
-	if err := utils.UserRequired(user); err != nil {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
 		return nil, err
 	}
 
 	chatsManager := services.NewChatsManager()
-	chat, err := chatsManager.GetConcrete(uint(chatID), user)
+	chat, err := chatsManager.GetConcrete(uint(chatID), token)
 
 	if err != nil {
 		return nil, err

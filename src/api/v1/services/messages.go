@@ -8,46 +8,46 @@ import (
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/schemas"
 	"github.com/chack-check/chats-service/api/v1/utils"
-	"github.com/chack-check/chats-service/protousers"
 	"github.com/chack-check/chats-service/rabbit"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func getMessageEventFromMessage(message *models.Message, chat *models.Chat) *rabbit.MessageEvent {
-    members := []int{}
-    attachments := []string{}
-    mentioned := []int{}
-    readedBy := []int{}
+	members := []int{}
+	attachments := []string{}
+	mentioned := []int{}
+	readedBy := []int{}
 
-    for _, member := range chat.Members {
-        members = append(members, int(member))
-    }
+	for _, member := range chat.Members {
+		members = append(members, int(member))
+	}
 
-    for _, attachment := range message.Attachments {
-        attachments = append(attachments, string(attachment))
-    }
+	for _, attachment := range message.Attachments {
+		attachments = append(attachments, string(attachment))
+	}
 
-    for _, ment := range message.Mentioned {
-        mentioned = append(mentioned, int(ment))
-    }
+	for _, ment := range message.Mentioned {
+		mentioned = append(mentioned, int(ment))
+	}
 
-    for _, reader := range message.ReadedBy {
-        readedBy = append(readedBy, int(reader))
-    }
+	for _, reader := range message.ReadedBy {
+		readedBy = append(readedBy, int(reader))
+	}
 
-    return &rabbit.MessageEvent{
-        Type: "message",
-        IncludedUsers: members,
-        ChatID: int(message.ChatId),
-        SenderID: int(message.SenderId),
-        MessageType: message.Type,
-        Content: message.Content,
-        VoiceURL: message.VoiceURL,
-        CircleURL: message.CircleURL,
-        Attachments: attachments,
-        ReplyToID: int(message.ReplyToID),
-        Mentioned: mentioned,
-        ReadedBy: readedBy,
-    }
+	return &rabbit.MessageEvent{
+		Type:          "message",
+		IncludedUsers: members,
+		ChatID:        int(message.ChatId),
+		SenderID:      int(message.SenderId),
+		MessageType:   message.Type,
+		Content:       message.Content,
+		VoiceURL:      message.VoiceURL,
+		CircleURL:     message.CircleURL,
+		Attachments:   attachments,
+		ReplyToID:     int(message.ReplyToID),
+		Mentioned:     mentioned,
+		ReadedBy:      readedBy,
+	}
 }
 
 type MessagesManager struct {
@@ -119,17 +119,21 @@ func (manager *MessagesManager) createCircleMessage(message *models.Message, mes
 	return nil
 }
 
-func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRequest, chat *models.Chat, user *protousers.UserResponse) (*models.Message, error) {
+func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRequest, chat *models.Chat, token *jwt.Token) (*models.Message, error) {
 	getMessage := map[string]func(message *models.Message, messageData *model.CreateMessageRequest) error{
 		"text":   manager.getTextMessage,
 		"voice":  manager.createVoiceMessage,
 		"circle": manager.createCircleMessage,
 	}[messageData.Type.String()]
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
 
 	message := &models.Message{
 		ChatId:   chat.ID,
 		Type:     messageData.Type.String(),
-		SenderId: uint(user.Id),
+		SenderId: uint(tokenSubject.UserId),
 	}
 
 	if err := getMessage(message, messageData); err != nil {
@@ -142,19 +146,19 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 
 	sendingIds := slices.DeleteFunc(
 		chat.Members,
-		func(id int64) bool { return id != int64(user.Id) },
+		func(id int64) bool { return id != int64(tokenSubject.UserId) },
 	)
 	sendingIds32 := []int32{}
 	for _, v := range sendingIds {
 		sendingIds32 = append(sendingIds32, int32(v))
 	}
 
-    messageEvent := getMessageEventFromMessage(message, chat)
-    err := rabbit.EventsRabbitConnection.SendMessageEvent(messageEvent)
+	messageEvent := getMessageEventFromMessage(message, chat)
+	err = rabbit.EventsRabbitConnection.SendMessageEvent(messageEvent)
 
-    if err != nil {
-        log.Printf("Error when publishing message event in queue: %v", err)
-    }
+	if err != nil {
+		log.Printf("Error when publishing message event in queue: %v", err)
+	}
 
 	return message, nil
 }
