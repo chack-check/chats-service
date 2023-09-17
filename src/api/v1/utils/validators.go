@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
@@ -10,14 +11,17 @@ import (
 
 func UserRequired(token *jwt.Token) error {
 	if token == nil {
+		log.Fatal("No token")
 		return fmt.Errorf("Incorrect token")
 	}
 
 	exp, err := token.Claims.GetExpirationTime()
-	if err == nil && token.Valid && exp.Unix() < time.Now().Unix() {
+	if err == nil && token.Valid && exp.Unix() > time.Now().Unix() {
+		log.Printf("Token not expired: %v", exp)
 		return nil
 	}
 
+	log.Printf("Token expired: %v. Is valid: %v. Exp: %v. Now: %v", err, token.Valid, exp.Unix(), time.Now().Unix())
 	return fmt.Errorf("Incorrect token")
 }
 

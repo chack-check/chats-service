@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -22,14 +23,17 @@ func UserMiddleware(next http.Handler) http.Handler {
 
 		if len(authorization) != 0 {
 			tokenString := strings.Replace(r.Header["Authorization"][0], "Bearer ", "", 1)
+			log.Printf("Parsing token: %s", tokenString)
 			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 				return []byte(settings.Settings.SECRET_KEY), nil
 			})
 			if err == nil && token.Valid {
+				log.Printf("Successfully parsd token: %v", token)
 				ctx = context.WithValue(r.Context(), "token", token)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
+			log.Printf("Error validating token: %v", err)
 		}
 
 		ctx = context.WithValue(r.Context(), "token", nil)
@@ -41,13 +45,17 @@ func GetTokenSubject(token *jwt.Token) (TokenSubject, error) {
 	tokenSubject := TokenSubject{}
 	subject, err := token.Claims.GetSubject()
 	if err != nil {
+		log.Printf("Error parsing token subject: %v", err)
 		return tokenSubject, err
 	}
 
-	err = json.Unmarshal([]byte(subject), tokenSubject)
+	err = json.Unmarshal([]byte(subject), &tokenSubject)
 	if err != nil {
+		log.Printf("Error parsing token subject: %v", err)
 		return tokenSubject, err
 	}
+
+	log.Printf("Parsed token subject: %v", tokenSubject)
 
 	return tokenSubject, nil
 }
