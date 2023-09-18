@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/schemas"
@@ -29,7 +30,7 @@ func (manager *ChatsManager) GetConcrete(chatID uint, token *jwt.Token) (*models
 	return chat, nil
 }
 
-func (manager *ChatsManager) GetAll(token *jwt.Token, page *int, perPage *int) *schemas.PaginatedResponse[models.Chat] {
+func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *schemas.PaginatedResponse[models.Chat] {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil
@@ -38,7 +39,7 @@ func (manager *ChatsManager) GetAll(token *jwt.Token, page *int, perPage *int) *
 	count := manager.ChatsQueries.GetAllWithMemberCount(uint(tokenSubject.UserId))
 	countValue := *count
 	chats := manager.ChatsQueries.GetAllWithMember(uint(tokenSubject.UserId), page, perPage)
-	paginatedResponse := schemas.NewPaginatedResponse[models.Chat](*page, *perPage, int(countValue), *chats)
+	paginatedResponse := schemas.NewPaginatedResponse[models.Chat](page, perPage, int(countValue), *chats)
 	return &paginatedResponse
 }
 
@@ -59,6 +60,8 @@ func (manager *ChatsManager) createUserChat(chat *models.Chat, userId int, chatU
 	chat.Title = fmt.Sprintf("%v %v %v", chatUser.LastName, chatUser.FirstName, chatUser.MiddleName)
 	chat.Type = "user"
 	chat.AvatarURL = "https://google.com"
+
+    log.Printf("Creating chat: %v", chat)
 
 	if err := manager.ChatsQueries.Create(chat); err != nil {
 		return err
@@ -83,10 +86,11 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 
 	chatUser, err := grpc_client.UsersGrpcClient.GetUserById(int(chatUserId))
 
-	if err != nil {
+	if err != nil || chatUser == nil {
 		return fmt.Errorf("There is no user with id %d", chatUserId)
 	}
 
+    log.Printf("Creating user chat: %v, user id: %v, chat user: %v", chat, tokenSubject.UserId, chatUser)
 	return manager.createUserChat(chat, tokenSubject.UserId, chatUser)
 }
 

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/chack-check/chats-service/database"
 )
@@ -36,9 +37,11 @@ func (queries *ChatsQueries) GetWithMember(chatId uint, userId uint) (*Chat, err
 	return &chat, nil
 }
 
-func (queries *ChatsQueries) GetAllWithMember(userId uint, page *int, perPage *int) *[]Chat {
+func (queries *ChatsQueries) GetAllWithMember(userId uint, page int, perPage int) *[]Chat {
 	var chats []Chat
+
 	database.DB.Scopes(Paginate(page, perPage)).Where("? = ANY(members)", userId).Find(&chats)
+    log.Printf("User chats count: %v", len(chats))
 	return &chats
 }
 

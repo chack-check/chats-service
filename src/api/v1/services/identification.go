@@ -43,17 +43,18 @@ func UserMiddleware(next http.Handler) http.Handler {
 
 func GetTokenSubject(token *jwt.Token) (TokenSubject, error) {
 	tokenSubject := TokenSubject{}
-	subject, err := token.Claims.GetSubject()
-	if err != nil {
-		log.Printf("Error parsing token subject: %v", err)
-		return tokenSubject, err
-	}
 
-	err = json.Unmarshal([]byte(subject), &tokenSubject)
-	if err != nil {
-		log.Printf("Error parsing token subject: %v", err)
-		return tokenSubject, err
-	}
+    subject, err := token.Claims.GetSubject()
+    if err != nil {
+        log.Printf("Error parsing token subject: %v", token)
+        return tokenSubject, err
+    }
+
+    err = json.Unmarshal([]byte(subject), &tokenSubject)
+    if err != nil {
+        log.Printf("Error parsing token subject: %v", token)
+        return tokenSubject, err
+    }
 
 	log.Printf("Parsed token subject: %v", tokenSubject)
 

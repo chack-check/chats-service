@@ -11,6 +11,7 @@ import (
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/services"
 	"github.com/chack-check/chats-service/database"
+	"github.com/chack-check/chats-service/middlewares"
 	"github.com/chack-check/chats-service/rabbit"
 	"github.com/chack-check/chats-service/settings"
 	"github.com/chack-check/chats-service/ws"
@@ -26,6 +27,7 @@ func main() {
 	router := chi.NewRouter()
 
 	router.Use(services.UserMiddleware)
+    router.Use(middlewares.CorsMiddleware)
 
 	srvV1 := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
 

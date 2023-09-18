@@ -7,6 +7,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/services"
@@ -55,11 +56,12 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 	}
 
 	chatsManager := services.NewChatsManager()
-	if request.User == nil {
-		err = chatsManager.Create(chat, token, 0)
-	} else {
-		err = chatsManager.Create(chat, token, uint(*request.User))
-	}
+    log.Printf("Creating chat: %v from request: %v", chat, request)
+    log.Printf("Creating chat request user: %v", *request.User)
+    err = chatsManager.Create(chat, token, uint(*request.User))
+    if err != nil {
+        return nil, err
+    }
 
 	chatSchema := utils.DbChatToSchema(*chat)
 	return &chatSchema, nil
@@ -87,6 +89,14 @@ func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *i
 		return nil, err
 	}
 
+    var pageValue, perPageValue int = 1, 20
+    if page != nil {
+        pageValue = *page
+    }
+    if perPage != nil {
+        perPageValue = *perPage
+    }
+
 	chatsManager := services.NewChatsManager()
 	chat, err := chatsManager.GetConcrete(uint(chatID), token)
 	if err != nil {
@@ -94,7 +104,7 @@ func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *i
 	}
 
 	messagesManager := services.NewMessagesManager()
-	paginatedMessages := messagesManager.GetChatAll(chat.ID, page, perPage)
+	paginatedMessages := messagesManager.GetChatAll(chat.ID, pageValue, perPageValue)
 	var messages []*model.Message
 	for _, message := range *paginatedMessages.Data {
 		messageSchema := utils.DbMessageToSchema(message)
@@ -116,8 +126,20 @@ func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (
 		return nil, err
 	}
 
+    var pageValue, perPageValue int = 1, 20
+    if page != nil {
+        pageValue = *page
+    }
+    if perPage != nil {
+        perPageValue = *perPage
+    }
+
 	chatsManager := services.NewChatsManager()
-	paginatedChats := chatsManager.GetAll(token, page, perPage)
+	paginatedChats := chatsManager.GetAll(token, pageValue, perPageValue)
+    if paginatedChats == nil {
+        return nil, fmt.Errorf("Incorrect token")
+    }
+
 	var chats []*model.Chat
 	for _, chat := range *paginatedChats.Data {
 		chatSchema := utils.DbChatToSchema(chat)

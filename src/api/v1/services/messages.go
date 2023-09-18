@@ -54,11 +54,10 @@ type MessagesManager struct {
 	MessagesQueries *models.MessagesQueries
 }
 
-func (manager *MessagesManager) GetChatAll(chatId uint, page *int, perPage *int) *schemas.PaginatedResponse[models.Message] {
+func (manager *MessagesManager) GetChatAll(chatId uint, page int, perPage int) *schemas.PaginatedResponse[models.Message] {
 	count := manager.MessagesQueries.GetAllInChatCount(chatId)
-	countValue := *count
 	messages := manager.MessagesQueries.GetAllInChat(page, perPage, chatId)
-	paginatedResponse := schemas.NewPaginatedResponse[models.Message](*page, *perPage, int(countValue), *messages)
+	paginatedResponse := schemas.NewPaginatedResponse[models.Message](page, perPage, int(count), *messages)
 	return &paginatedResponse
 }
 

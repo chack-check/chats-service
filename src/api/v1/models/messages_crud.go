@@ -4,7 +4,7 @@ import "github.com/chack-check/chats-service/database"
 
 type MessagesQueries struct{}
 
-func (queries *MessagesQueries) GetAllInChat(page *int, perPage *int, chatId uint) *[]Message {
+func (queries *MessagesQueries) GetAllInChat(page int, perPage int, chatId uint) *[]Message {
 	var messages []Message
 	database.DB.Scopes(Paginate(page, perPage)).Preload(
 		"Reactions",
@@ -16,10 +16,10 @@ func (queries *MessagesQueries) GetAllInChat(page *int, perPage *int, chatId uin
 	return &messages
 }
 
-func (queries *MessagesQueries) GetAllInChatCount(chatId uint) *int64 {
+func (queries *MessagesQueries) GetAllInChatCount(chatId uint) int64 {
 	var count int64
 	database.DB.Model(&Message{}).Where("chat_id = ?", chatId).Count(&count)
-	return &count
+	return count
 }
 
 func (queries *MessagesQueries) Create(message *Message) error {

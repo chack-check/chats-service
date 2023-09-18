@@ -11,7 +11,7 @@ import (
 
 func UserRequired(token *jwt.Token) error {
 	if token == nil {
-		log.Fatal("No token")
+		log.Print("No token")
 		return fmt.Errorf("Incorrect token")
 	}
 
