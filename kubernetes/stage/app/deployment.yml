@@ -6,7 +6,7 @@ metadata:
     app: chack-chats-service
     name: chack-chats-service
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: chack-chats-service
