@@ -19,6 +19,7 @@ func failOnError(err error, msg string) {
 
 type MessageEvent struct {
     Type string `json:"type"`
+    MessageId int `json:"messageId"`
     IncludedUsers []int `json:"includedUsers"`
     ChatID int `json:"chatId"`
     SenderID int `json:"senderId"`
@@ -67,8 +68,13 @@ func (conn *RabbitConnection) DeclareQueue(queueName string) {
 }
 
 func (conn *RabbitConnection) SendEvent(event []byte) error {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    if conn.Connection.IsClosed() {
+        conn.Connect()
+    }
+
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
     defer cancel()
+    log.Printf("Sending content to rabbitmq: %s, queue name: %s, closed: %v", event, conn.Queue.Name, conn.Connection.IsClosed())
     return conn.Channel.PublishWithContext(
         ctx,
         "",

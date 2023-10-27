@@ -2,7 +2,6 @@ package services
 
 import (
 	"log"
-	"slices"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/models"
@@ -36,6 +35,7 @@ func getMessageEventFromMessage(message *models.Message, chat *models.Chat) *rab
 
 	return &rabbit.MessageEvent{
 		Type:          "message",
+        MessageId:     int(message.ID),
 		IncludedUsers: members,
 		ChatID:        int(message.ChatId),
 		SenderID:      int(message.SenderId),
@@ -62,6 +62,7 @@ func (manager *MessagesManager) GetChatAll(chatId uint, page int, perPage int) *
 }
 
 func (manager *MessagesManager) getTextMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
+    log.Print("Creating text message")
 	if err := utils.ValidateTextMessage(messageData); err != nil {
 		return err
 	}
@@ -91,13 +92,14 @@ func (manager *MessagesManager) getTextMessage(message *models.Message, messageD
 }
 
 func (manager *MessagesManager) createVoiceMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
+    log.Print("Creating voice message")
 	if err := utils.ValidateVoiceMessage(messageData); err != nil {
 		return err
 	}
 
 	message.VoiceURL = *messageData.Voice
 
-	if *messageData.ReplyToID != 0 {
+	if messageData.ReplyToID != nil && *messageData.ReplyToID != 0 {
 		message.ReplyToID = uint(*messageData.ReplyToID)
 	}
 
@@ -105,6 +107,7 @@ func (manager *MessagesManager) createVoiceMessage(message *models.Message, mess
 }
 
 func (manager *MessagesManager) createCircleMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
+    log.Print("Creating circle message")
 	if err := utils.ValidateCircleMessage(messageData); err != nil {
 		return err
 	}
@@ -119,11 +122,6 @@ func (manager *MessagesManager) createCircleMessage(message *models.Message, mes
 }
 
 func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRequest, chat *models.Chat, token *jwt.Token) (*models.Message, error) {
-	getMessage := map[string]func(message *models.Message, messageData *model.CreateMessageRequest) error{
-		"text":   manager.getTextMessage,
-		"voice":  manager.createVoiceMessage,
-		"circle": manager.createCircleMessage,
-	}[messageData.Type.String()]
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil, err
@@ -135,25 +133,32 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 		SenderId: uint(tokenSubject.UserId),
 	}
 
-	if err := getMessage(message, messageData); err != nil {
+    if messageData.Type.String() == "text" {
+        if err = manager.getTextMessage(message, messageData); err != nil {
+            return nil, err
+        }
+    } else if messageData.Type.String() == "voice" {
+        if err = manager.createVoiceMessage(message, messageData); err != nil {
+            return nil, err
+        }
+    } else if messageData.Type.String() == "circle" {
+        if err = manager.createCircleMessage(message, messageData); err != nil {
+            return nil, err
+        }
+    }
+
+	if err = manager.MessagesQueries.Create(message); err != nil {
 		return nil, err
 	}
 
-	if err := manager.MessagesQueries.Create(message); err != nil {
-		return nil, err
-	}
-
-	sendingIds := slices.DeleteFunc(
-		chat.Members,
-		func(id int64) bool { return id != int64(tokenSubject.UserId) },
-	)
 	sendingIds32 := []int32{}
-	for _, v := range sendingIds {
+	for _, v := range chat.Members {
 		sendingIds32 = append(sendingIds32, int32(v))
 	}
 
 	messageEvent := getMessageEventFromMessage(message, chat)
 	err = rabbit.EventsRabbitConnection.SendMessageEvent(messageEvent)
+    log.Printf("Sended message to rabbitmq")
 
 	if err != nil {
 		log.Printf("Error when publishing message event in queue: %v", err)

@@ -34,6 +34,7 @@ func ValidateTextMessage(message *model.CreateMessageRequest) error {
 }
 
 func ValidateVoiceMessage(message *model.CreateMessageRequest) error {
+    log.Printf("Message voice: %v", *message.Voice)
 	if len(*message.Voice) == 0 {
 		return fmt.Errorf("You need to specify voice url for voice message")
 	}
