@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: chats-db
-          image: postgres
+          image: postgres:15
           envFrom:
             - configMapRef:
                 name: chats-db-configmap
