@@ -31,6 +31,7 @@ type MessageEvent struct {
     ReplyToID int `json:"replyToId"`
     Mentioned []int `json:"mentioned"`
     ReadedBy []int `json:"readedBy"`
+    Datetime string `json:"datetime"`
 }
 
 type RabbitConnection struct {

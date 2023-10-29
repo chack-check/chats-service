@@ -2,6 +2,7 @@ package services
 
 import (
 	"log"
+	"time"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/models"
@@ -47,6 +48,7 @@ func getMessageEventFromMessage(message *models.Message, chat *models.Chat) *rab
 		ReplyToID:     int(message.ReplyToID),
 		Mentioned:     mentioned,
 		ReadedBy:      readedBy,
+		Datetime:      message.CreatedAt.UTC().Format(time.RFC3339),
 	}
 }
 
