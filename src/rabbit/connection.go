@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
+	"github.com/chack-check/chats-service/settings"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -103,19 +103,14 @@ func (conn *RabbitConnection) Close() {
 }
 
 func NewEventsRabbitConnection() *RabbitConnection {
-    user := os.Getenv("RABBIT_USER")
-    pass := os.Getenv("RABBIT_PASS")
-    host := os.Getenv("RABBIT_HOST")
-    port := os.Getenv("RABBIT_PORT")
-    queueName := os.Getenv("RABBIT_EVENTS_QUEUE_NAME")
     conn := &RabbitConnection{
-        User: user,
-        Pass: pass,
-        Host: host,
-        Port: port,
+        User: settings.Settings.APP_RABBIT_USER,
+        Pass: settings.Settings.APP_RABBIT_PASSWORD,
+        Host: settings.Settings.APP_RABBIT_HOST,
+        Port: fmt.Sprint(settings.Settings.APP_RABBIT_PORT),
     }
     conn.Connect()
-    conn.DeclareQueue(queueName)
+    conn.DeclareQueue(settings.Settings.APP_RABBIT_EVENTS_QUEUE_NAME)
     return conn
 }
 

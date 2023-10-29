@@ -44,20 +44,22 @@ spec:
                   key: database_password
             - name: APP_DATABASE_NAME
               value: chats_db
-            - name: RABBIT_HOST
+            - name: APP_RABBIT_HOST
               value: rabbitmq
-            - name: RABBIT_PORT
+            - name: APP_RABBIT_PORT
               value: "5672"
-            - name: RABBIT_USER
+            - name: APP_RABBIT_USER
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-credentials
                   key: user
-            - name: RABBIT_PASS
+            - name: APP_RABBIT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-credentials
                   key: password
+            - name: APP_RABBIT_EVENTS_QUEUE_NAME
+              value: events_queue
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
