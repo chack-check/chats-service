@@ -1,8 +1,39 @@
 package models
 
-import "github.com/chack-check/chats-service/database"
+import (
+	"fmt"
+	"slices"
+
+	"github.com/chack-check/chats-service/database"
+	"github.com/lib/pq"
+)
 
 type MessagesQueries struct{}
+
+func (queries *MessagesQueries) GetConcrete(chatId uint, messageId uint) (*Message, error) {
+	var message Message
+	database.DB.Where("chat_id = ?", chatId).Where("id = ?", messageId).First(&message)
+	if message.ID == 0 {
+		return &Message{}, fmt.Errorf("Chat with this ID doesn't exist")
+	}
+
+	return &message, nil
+}
+
+func (queries *MessagesQueries) Read(message *Message, userId uint) error {
+	var readedBy []int32
+	for _, v := range message.ReadedBy {
+		readedBy = append(readedBy, int32(v))
+	}
+
+	if slices.Contains(readedBy, int32(userId)) {
+		return nil
+	}
+
+	readedBy = append(readedBy, int32(userId))
+	database.DB.Model(message).Update("readed_by", pq.Int32Array(readedBy))
+	return nil
+}
 
 func (queries *MessagesQueries) GetAllInChat(page int, perPage int, chatId uint) *[]Message {
 	var messages []Message

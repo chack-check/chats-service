@@ -130,6 +130,7 @@ type Mutation {
   addChatMembers(chatId: Int!, members: [Int!]): Chat!
   addChatAdmins(chatId: Int!, admins: [Int!]): Chat!
   editChat(chatId: Int!, request: EditChatRequest!): Chat!
+  readMessage(chatId: Int!, messageId: Int): Message!
 }
 
 schema {

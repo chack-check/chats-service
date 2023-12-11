@@ -12,7 +12,7 @@ func Paginate(page int, perPage int) func(db *gorm.DB) *gorm.DB {
 			page = 1
 		}
 
-		if perPage < 20 {
+		if perPage <= 20 {
 			perPage = 20
 		} else {
 			perPage = 100

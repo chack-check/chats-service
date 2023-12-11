@@ -12,7 +12,7 @@ import (
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/services"
 	"github.com/chack-check/chats-service/api/v1/utils"
-	"github.com/golang-jwt/jwt/v5"
+	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 // CreateMessage is the resolver for the createMessage field.
@@ -56,12 +56,12 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 	}
 
 	chatsManager := services.NewChatsManager()
-    log.Printf("Creating chat: %v from request: %v", chat, request)
-    log.Printf("Creating chat request user: %v", *request.User)
-    err = chatsManager.Create(chat, token, uint(*request.User))
-    if err != nil {
-        return nil, err
-    }
+	log.Printf("Creating chat: %v from request: %v", chat, request)
+	log.Printf("Creating chat request user: %v", *request.User)
+	err = chatsManager.Create(chat, token, uint(*request.User))
+	if err != nil {
+		return nil, err
+	}
 
 	chatSchema := utils.DbChatToSchema(*chat)
 	return &chatSchema, nil
@@ -82,6 +82,29 @@ func (r *mutationResolver) EditChat(ctx context.Context, chatID int, request mod
 	panic(fmt.Errorf("not implemented: EditChat - editChat"))
 }
 
+// ReadMessage is the resolver for the readMessage field.
+func (r *mutationResolver) ReadMessage(ctx context.Context, chatID int, messageID *int) (*model.Message, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return nil, err
+	}
+
+	chatsManager := services.NewChatsManager()
+	chat, err := chatsManager.GetConcrete(uint(chatID), token)
+	if err != nil {
+		return nil, err
+	}
+
+	messagesManager := services.NewMessagesManager()
+	message, err := messagesManager.Read(chat, uint(*messageID), token)
+	if err != nil {
+		return nil, err
+	}
+
+	messageSchema := utils.DbMessageToSchema(*message)
+	return &messageSchema, nil
+}
+
 // GetChatMessages is the resolver for the getChatMessages field.
 func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error) {
 	token, _ := ctx.Value("token").(*jwt.Token)
@@ -89,13 +112,13 @@ func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *i
 		return nil, err
 	}
 
-    var pageValue, perPageValue int = 1, 20
-    if page != nil {
-        pageValue = *page
-    }
-    if perPage != nil {
-        perPageValue = *perPage
-    }
+	var pageValue, perPageValue int = 1, 20
+	if page != nil {
+		pageValue = *page
+	}
+	if perPage != nil {
+		perPageValue = *perPage
+	}
 
 	chatsManager := services.NewChatsManager()
 	chat, err := chatsManager.GetConcrete(uint(chatID), token)
@@ -126,19 +149,19 @@ func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (
 		return nil, err
 	}
 
-    var pageValue, perPageValue int = 1, 20
-    if page != nil {
-        pageValue = *page
-    }
-    if perPage != nil {
-        perPageValue = *perPage
-    }
+	var pageValue, perPageValue int = 1, 20
+	if page != nil {
+		pageValue = *page
+	}
+	if perPage != nil {
+		perPageValue = *perPage
+	}
 
 	chatsManager := services.NewChatsManager()
 	paginatedChats := chatsManager.GetAll(token, pageValue, perPageValue)
-    if paginatedChats == nil {
-        return nil, fmt.Errorf("Incorrect token")
-    }
+	if paginatedChats == nil {
+		return nil, fmt.Errorf("Incorrect token")
+	}
 
 	var chats []*model.Chat
 	for _, chat := range *paginatedChats.Data {

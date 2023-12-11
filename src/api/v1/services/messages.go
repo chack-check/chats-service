@@ -36,7 +36,7 @@ func getMessageEventFromMessage(message *models.Message, chat *models.Chat) *rab
 
 	return &rabbit.MessageEvent{
 		Type:          "message",
-        MessageId:     int(message.ID),
+		MessageId:     int(message.ID),
 		IncludedUsers: members,
 		ChatID:        int(message.ChatId),
 		SenderID:      int(message.SenderId),
@@ -52,6 +52,27 @@ func getMessageEventFromMessage(message *models.Message, chat *models.Chat) *rab
 	}
 }
 
+func getReadMessageEventFromMessage(message *models.Message, chat *models.Chat) *rabbit.ReadMessageEvent {
+	members := []int{}
+	readedBy := []int{}
+
+	for _, member := range chat.Members {
+		members = append(members, int(member))
+	}
+
+	for _, reader := range message.ReadedBy {
+		readedBy = append(readedBy, int(reader))
+	}
+
+	return &rabbit.ReadMessageEvent{
+		Type:          "message_readed",
+		MessageId:     int(message.ID),
+		ChatID:        int(message.ChatId),
+		ReadedBy:      readedBy,
+		IncludedUsers: members,
+	}
+}
+
 type MessagesManager struct {
 	MessagesQueries *models.MessagesQueries
 }
@@ -64,7 +85,7 @@ func (manager *MessagesManager) GetChatAll(chatId uint, page int, perPage int) *
 }
 
 func (manager *MessagesManager) getTextMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
-    log.Print("Creating text message")
+	log.Print("Creating text message")
 	if err := utils.ValidateTextMessage(messageData); err != nil {
 		return err
 	}
@@ -94,7 +115,7 @@ func (manager *MessagesManager) getTextMessage(message *models.Message, messageD
 }
 
 func (manager *MessagesManager) createVoiceMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
-    log.Print("Creating voice message")
+	log.Print("Creating voice message")
 	if err := utils.ValidateVoiceMessage(messageData); err != nil {
 		return err
 	}
@@ -109,7 +130,7 @@ func (manager *MessagesManager) createVoiceMessage(message *models.Message, mess
 }
 
 func (manager *MessagesManager) createCircleMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
-    log.Print("Creating circle message")
+	log.Print("Creating circle message")
 	if err := utils.ValidateCircleMessage(messageData); err != nil {
 		return err
 	}
@@ -135,19 +156,19 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 		SenderId: uint(tokenSubject.UserId),
 	}
 
-    if messageData.Type.String() == "text" {
-        if err = manager.getTextMessage(message, messageData); err != nil {
-            return nil, err
-        }
-    } else if messageData.Type.String() == "voice" {
-        if err = manager.createVoiceMessage(message, messageData); err != nil {
-            return nil, err
-        }
-    } else if messageData.Type.String() == "circle" {
-        if err = manager.createCircleMessage(message, messageData); err != nil {
-            return nil, err
-        }
-    }
+	if messageData.Type.String() == "text" {
+		if err = manager.getTextMessage(message, messageData); err != nil {
+			return nil, err
+		}
+	} else if messageData.Type.String() == "voice" {
+		if err = manager.createVoiceMessage(message, messageData); err != nil {
+			return nil, err
+		}
+	} else if messageData.Type.String() == "circle" {
+		if err = manager.createCircleMessage(message, messageData); err != nil {
+			return nil, err
+		}
+	}
 
 	if err = manager.MessagesQueries.Create(message); err != nil {
 		return nil, err
@@ -159,12 +180,37 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 	}
 
 	messageEvent := getMessageEventFromMessage(message, chat)
-	err = rabbit.EventsRabbitConnection.SendMessageEvent(messageEvent)
-    log.Printf("Sended message to rabbitmq")
+	err = rabbit.EventsRabbitConnection.SendEvent(messageEvent)
+	log.Printf("Sended message to rabbitmq")
 
 	if err != nil {
 		log.Printf("Error when publishing message event in queue: %v", err)
 	}
+
+	return message, nil
+}
+
+func (manager *MessagesManager) Read(chat *models.Chat, messageId uint, token *jwt.Token) (*models.Message, error) {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	message, err := manager.MessagesQueries.GetConcrete(chat.ID, messageId)
+	if err != nil {
+		return nil, err
+	}
+
+	manager.MessagesQueries.Read(message, uint(tokenSubject.UserId))
+
+	readMessageEvent := getReadMessageEventFromMessage(message, chat)
+	err = rabbit.EventsRabbitConnection.SendEvent(readMessageEvent)
+
+	if err != nil {
+		log.Printf("Error when publishing message readed event in queue: %v", err)
+	}
+
+	log.Printf("Sended message readed event to rabbitmq")
 
 	return message, nil
 }

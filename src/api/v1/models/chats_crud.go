@@ -41,7 +41,7 @@ func (queries *ChatsQueries) GetAllWithMember(userId uint, page int, perPage int
 	var chats []Chat
 
 	database.DB.Scopes(Paginate(page, perPage)).Where("? = ANY(members)", userId).Find(&chats)
-    log.Printf("User chats count: %v", len(chats))
+	log.Printf("User chats count: %v", len(chats))
 	return &chats
 }
 
@@ -55,4 +55,10 @@ func (queries *ChatsQueries) GetAll(userId uint) *[]Chat {
 	var chats []Chat
 	database.DB.Where(&Chat{OwnerId: userId}).Find(&chats)
 	return &chats
+}
+
+func (queries *ChatsQueries) GetExistingWithUser(userId uint, anotherUserId uint) bool {
+	var count int64
+	database.DB.Model(&Chat{}).Where("? = ANY(members) AND ? = ANY(members)", userId, anotherUserId).Count(&count)
+	return count > 0
 }
