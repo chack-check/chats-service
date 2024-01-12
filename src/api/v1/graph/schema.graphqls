@@ -131,6 +131,7 @@ type Mutation {
   addChatAdmins(chatId: Int!, admins: [Int!]): Chat!
   editChat(chatId: Int!, request: EditChatRequest!): Chat!
   readMessage(chatId: Int!, messageId: Int): Message!
+  reactMessage(chatId: Int!, messageId: Int!, content: String!): Message!
 }
 
 schema {

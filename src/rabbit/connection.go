@@ -55,6 +55,15 @@ type ReadMessageEvent struct {
 	IncludedUsers []int  `json:"includedUsers"`
 }
 
+type IRabbitConnection interface {
+	Connect()
+	DeclareQueue(queueName string)
+	SendEvent(event interface{}) error
+	Close()
+}
+
+type MockRabbitConnection struct{}
+
 type RabbitConnection struct {
 	User       string
 	Pass       string
@@ -76,6 +85,10 @@ func (conn *RabbitConnection) Connect() {
 	conn.Channel = channel
 }
 
+func (conn *MockRabbitConnection) Connect() {
+	log.Print("Connect to rabbitmq")
+}
+
 func (conn *RabbitConnection) DeclareQueue(queueName string) {
 	queue, err := conn.Channel.QueueDeclare(
 		queueName,
@@ -87,6 +100,10 @@ func (conn *RabbitConnection) DeclareQueue(queueName string) {
 	)
 	failOnError(err, "Failed to declare a queue")
 	conn.Queue = queue
+}
+
+func (conn *MockRabbitConnection) DeclareQueue(queueName string) {
+	log.Printf("Declaring queue %s", queueName)
 }
 
 func (conn *RabbitConnection) SendEvent(event interface{}) error {
@@ -117,12 +134,27 @@ func (conn *RabbitConnection) SendEvent(event interface{}) error {
 	)
 }
 
+func (conn *MockRabbitConnection) SendEvent(event interface{}) error {
+	log.Printf("Sending event to queue: %v", event)
+	return nil
+}
+
 func (conn *RabbitConnection) Close() {
 	conn.Connection.Close()
 	conn.Channel.Close()
 }
 
-func NewEventsRabbitConnection() *RabbitConnection {
+func (conn *MockRabbitConnection) Close() {
+	log.Print("Closed rabbitmq connection")
+}
+
+func NewEventsRabbitConnection() IRabbitConnection {
+	log.Print(settings.Settings.APP_ENVIRONMENT)
+	if settings.Settings.APP_ENVIRONMENT == "test" {
+		conn := &MockRabbitConnection{}
+		return conn
+	}
+
 	conn := &RabbitConnection{
 		User: settings.Settings.APP_RABBIT_USER,
 		Pass: settings.Settings.APP_RABBIT_PASSWORD,
@@ -134,4 +166,4 @@ func NewEventsRabbitConnection() *RabbitConnection {
 	return conn
 }
 
-var EventsRabbitConnection *RabbitConnection = NewEventsRabbitConnection()
+var EventsRabbitConnection IRabbitConnection = NewEventsRabbitConnection()

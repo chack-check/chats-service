@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  test-db:
+    image: postgres
+    env_file:
+      - .env.test
+    volumes:
+      - test-chats-pgdata:/var/lib/postgresql/data
+  test-service:
+    build:
+      dockerfile: docker/Dockerfile.test
+      context: .
+    command: go run ./server.go
+    env_file:
+      - .env.test
+    depends_on:
+      - test-db
+
+volumes:
+  test-chats-pgdata:

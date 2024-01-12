@@ -62,3 +62,18 @@ func (queries *MessagesQueries) Create(message *Message) error {
 
 	return nil
 }
+
+func (queries *MessagesQueries) AddReaction(userId uint, content string, message *Message) {
+	if slices.IndexFunc(message.Reactions, func(r Reaction) bool { return r.UserId == userId }) >= 0 {
+		return
+	}
+
+	newReaction := Reaction{
+		MessageId: message.ID,
+		UserId:    userId,
+		Content:   content,
+	}
+
+	database.DB.Create(&newReaction)
+	message.Reactions = append(message.Reactions, newReaction)
+}

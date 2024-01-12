@@ -80,7 +80,7 @@ type MessagesManager struct {
 func (manager *MessagesManager) GetChatAll(chatId uint, page int, perPage int) *schemas.PaginatedResponse[models.Message] {
 	count := manager.MessagesQueries.GetAllInChatCount(chatId)
 	messages := manager.MessagesQueries.GetAllInChat(page, perPage, chatId)
-	paginatedResponse := schemas.NewPaginatedResponse[models.Message](page, perPage, int(count), *messages)
+	paginatedResponse := schemas.NewPaginatedResponse(page, perPage, int(count), *messages)
 	return &paginatedResponse
 }
 
@@ -211,6 +211,17 @@ func (manager *MessagesManager) Read(chat *models.Chat, messageId uint, token *j
 	}
 
 	log.Printf("Sended message readed event to rabbitmq")
+
+	return message, nil
+}
+
+func (manager *MessagesManager) ReactMessage(userId uint, chatId uint, messageId uint, content string) (*models.Message, error) {
+	message, err := manager.MessagesQueries.GetConcrete(chatId, messageId)
+	if err != nil {
+		return &models.Message{}, err
+	}
+
+	manager.MessagesQueries.AddReaction(userId, content, message)
 
 	return message, nil
 }

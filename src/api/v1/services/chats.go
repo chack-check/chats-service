@@ -182,6 +182,26 @@ func (manager *ChatsManager) sendChatEvent(chat *models.Chat) error {
 	return nil
 }
 
+func (manager *ChatsManager) Search(query string, token *jwt.Token, page int, perPage int) (*schemas.PaginatedResponse[models.Chat], error) {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	if page < 1 {
+		page = 1
+	}
+
+	if perPage < 1 {
+		perPage = 1
+	}
+
+	chatsCount := manager.ChatsQueries.SearchCount(uint(tokenSubject.UserId), query, page, perPage)
+	chats := manager.ChatsQueries.Search(uint(tokenSubject.UserId), query, page, perPage)
+	response := schemas.NewPaginatedResponse(page, perPage, int(chatsCount), *chats)
+	return &response, nil
+}
+
 func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUserId uint) error {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {

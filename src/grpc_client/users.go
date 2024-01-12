@@ -11,6 +11,13 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type IUsersGrpc interface {
+	Connect()
+	GetUserByToken(token string) (*pb.UserResponse, error)
+	GetUserByRefreshToken(token string) (*pb.UserResponse, error)
+	GetUserById(id int) (*pb.UserResponse, error)
+}
+
 type UsersGrpc struct {
 	Host string
 	Port int
@@ -18,7 +25,9 @@ type UsersGrpc struct {
 	client pb.UsersClient
 }
 
-var UsersGrpcClient *UsersGrpc = GetUsersGrpc()
+type MockUsersGrpc struct{}
+
+var UsersGrpcClient IUsersGrpc = GetUsersGrpc()
 
 func (usersGrpc *UsersGrpc) Connect() {
 	opts := grpc.WithTransportCredentials(insecure.NewCredentials())
@@ -32,6 +41,10 @@ func (usersGrpc *UsersGrpc) Connect() {
 	usersGrpc.client = pb.NewUsersClient(connection)
 }
 
+func (usersGrpc *MockUsersGrpc) Connect() {
+	log.Print("Connected to users grpc")
+}
+
 func (usersGrpc *UsersGrpc) GetUserByToken(token string) (*pb.UserResponse, error) {
 	user, err := usersGrpc.client.GetUserByToken(context.Background(), &pb.GetUserByTokenRequest{Token: token})
 
@@ -40,6 +53,24 @@ func (usersGrpc *UsersGrpc) GetUserByToken(token string) (*pb.UserResponse, erro
 	}
 
 	return user, nil
+}
+
+func (usersGrpc *MockUsersGrpc) GetUserByToken(token string) (*pb.UserResponse, error) {
+	return &pb.UserResponse{
+		Id:             1,
+		Username:       "testuser",
+		Phone:          "testphone",
+		Email:          "testemail",
+		FirstName:      "testfirstname",
+		LastName:       "testlastname",
+		MiddleName:     "testmiddlename",
+		Activity:       "testactivity",
+		Status:         "teststatus",
+		EmailConfirmed: true,
+		PhoneConfirmed: true,
+		LastSeen:       "2023-01-01T20:00:00Z",
+		AvatarUrl:      "testurl",
+	}, nil
 }
 
 func (UsersGrpc *UsersGrpc) GetUserByRefreshToken(token string) (*pb.UserResponse, error) {
@@ -52,6 +83,24 @@ func (UsersGrpc *UsersGrpc) GetUserByRefreshToken(token string) (*pb.UserRespons
 	return user, nil
 }
 
+func (UsersGrpc *MockUsersGrpc) GetUserByRefreshToken(token string) (*pb.UserResponse, error) {
+	return &pb.UserResponse{
+		Id:             1,
+		Username:       "testuser",
+		Phone:          "testphone",
+		Email:          "testemail",
+		FirstName:      "testfirstname",
+		LastName:       "testlastname",
+		MiddleName:     "testmiddlename",
+		Activity:       "testactivity",
+		Status:         "teststatus",
+		EmailConfirmed: true,
+		PhoneConfirmed: true,
+		LastSeen:       "2023-01-01T20:00:00Z",
+		AvatarUrl:      "testurl",
+	}, nil
+}
+
 func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 	user, err := usersGrpc.client.GetUserById(context.Background(), &pb.GetUserByIdRequest{Id: int32(id)})
 	if err != nil || user == nil {
@@ -61,7 +110,29 @@ func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 	return user, nil
 }
 
-func GetUsersGrpc() *UsersGrpc {
+func (usersGrpc *MockUsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
+	return &pb.UserResponse{
+		Id:             1,
+		Username:       "testuser",
+		Phone:          "testphone",
+		Email:          "testemail",
+		FirstName:      "testfirstname",
+		LastName:       "testlastname",
+		MiddleName:     "testmiddlename",
+		Activity:       "testactivity",
+		Status:         "teststatus",
+		EmailConfirmed: true,
+		PhoneConfirmed: true,
+		LastSeen:       "2023-01-01T20:00:00Z",
+		AvatarUrl:      "testurl",
+	}, nil
+}
+
+func GetUsersGrpc() IUsersGrpc {
+	if settings.Settings.APP_ENVIRONMENT == "test" {
+		return &MockUsersGrpc{}
+	}
+
 	usersGrpc := UsersGrpc{
 		Host: settings.Settings.USERS_GRPC_HOST,
 		Port: settings.Settings.USERS_GRPC_PORT,

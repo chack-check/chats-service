@@ -179,7 +179,29 @@ func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (
 
 // SearchChats is the resolver for the searchChats field.
 func (r *queryResolver) SearchChats(ctx context.Context, query string, page *int, perPage *int) (*model.PaginatedChats, error) {
-	panic(fmt.Errorf("not implemented: SearchChats - searchChats"))
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return nil, err
+	}
+
+	chatsManager := services.NewChatsManager()
+	chats, err := chatsManager.Search(query, token, *page, *perPage)
+	if err != nil {
+		return nil, err
+	}
+
+	var chatsSchemas []*model.Chat
+	for _, chat := range *chats.Data {
+		chatSchema := utils.DbChatToSchema(chat)
+		chatsSchemas = append(chatsSchemas, &chatSchema)
+	}
+
+	return &model.PaginatedChats{
+		Page:     chats.Page,
+		NumPages: chats.PagesCount,
+		PerPage:  chats.PerPage,
+		Data:     chatsSchemas,
+	}, nil
 }
 
 // GetChat is the resolver for the getChat field.
