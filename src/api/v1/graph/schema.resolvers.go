@@ -40,7 +40,25 @@ func (r *mutationResolver) CreateMessage(ctx context.Context, request model.Crea
 
 // EditMessage is the resolver for the editMessage field.
 func (r *mutationResolver) EditMessage(ctx context.Context, chatID int, messageID int, request model.ChangeMessageRequest) (*model.Message, error) {
-	panic(fmt.Errorf("not implemented: EditMessage - editMessage"))
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return nil, err
+	}
+
+	chatsManager := services.NewChatsManager()
+	chat, err := chatsManager.GetConcrete(uint(chatID), token)
+	if err != nil {
+		return nil, err
+	}
+
+	messagesManager := services.NewMessagesManager()
+	message, err := messagesManager.Update(chat, uint(messageID), request, token)
+	if err != nil {
+		return nil, err
+	}
+
+	messageSchema := utils.DbMessageToSchema(*message)
+	return &messageSchema, nil
 }
 
 // CreateChat is the resolver for the createChat field.
@@ -105,6 +123,62 @@ func (r *mutationResolver) ReadMessage(ctx context.Context, chatID int, messageI
 	return &messageSchema, nil
 }
 
+// ReactMessage is the resolver for the reactMessage field.
+func (r *mutationResolver) ReactMessage(ctx context.Context, chatID int, messageID int, content string) (*model.Message, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return &model.Message{}, err
+	}
+
+	messagesManager := services.NewMessagesManager()
+	message, err := messagesManager.ReactMessage(token, uint(chatID), uint(messageID), content)
+	if err != nil {
+		return &model.Message{}, err
+	}
+
+	messageSchema := utils.DbMessageToSchema(*message)
+	return &messageSchema, nil
+}
+
+// DeleteMessage is the resolver for the deleteMessage field.
+func (r *mutationResolver) DeleteMessage(ctx context.Context, chatID int, messageID int, deleteFor model.DeleteForOptions) (*bool, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		isDeleted := false
+		return &isDeleted, err
+	}
+
+	messagesManager := services.NewMessagesManager()
+	err := messagesManager.DeleteMessage(token, uint(chatID), uint(messageID), services.DeleteForOptions(deleteFor.String()))
+	if err != nil {
+		isDeleted := false
+		return &isDeleted, err
+	}
+
+	isDeleted := true
+	return &isDeleted, nil
+}
+
+// DeleteChat is the resolver for the deleteChat field.
+func (r *mutationResolver) DeleteChat(ctx context.Context, chatID int) (*bool, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		isDeleted := false
+		return &isDeleted, err
+	}
+
+	chatsManager := services.NewChatsManager()
+	chat, err := chatsManager.GetConcrete(uint(chatID), token)
+	if err != nil {
+		isDeleted := false
+		return &isDeleted, err
+	}
+
+	chatsManager.Delete(chat)
+	isDeleted := true
+	return &isDeleted, nil
+}
+
 // GetChatMessages is the resolver for the getChatMessages field.
 func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error) {
 	token, _ := ctx.Value("token").(*jwt.Token)
@@ -127,7 +201,11 @@ func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *i
 	}
 
 	messagesManager := services.NewMessagesManager()
-	paginatedMessages := messagesManager.GetChatAll(chat.ID, pageValue, perPageValue)
+	paginatedMessages, err := messagesManager.GetChatAll(token, chat.ID, pageValue, perPageValue)
+	if err != nil {
+		return nil, err
+	}
+
 	var messages []*model.Message
 	for _, message := range *paginatedMessages.Data {
 		messageSchema := utils.DbMessageToSchema(message)

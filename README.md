@@ -22,3 +22,11 @@ $ make dev
 ## GraphiQL
 
 После запуска локально, сервис будет доступен по адресу http://localhost:8001/api/v1/chats
+
+## Регенерация схемы GraphQL
+
+Для регенерации схемы достаточно перейти в директорию `/api/v1/` и запустить там:
+
+```
+$ go run github.com/99designs/gqlgen generate
+```

@@ -143,6 +143,47 @@ func (e ChatType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
+type DeleteForOptions string
+
+const (
+	DeleteForOptionsMe  DeleteForOptions = "ME"
+	DeleteForOptionsAll DeleteForOptions = "ALL"
+)
+
+var AllDeleteForOptions = []DeleteForOptions{
+	DeleteForOptionsMe,
+	DeleteForOptionsAll,
+}
+
+func (e DeleteForOptions) IsValid() bool {
+	switch e {
+	case DeleteForOptionsMe, DeleteForOptionsAll:
+		return true
+	}
+	return false
+}
+
+func (e DeleteForOptions) String() string {
+	return string(e)
+}
+
+func (e *DeleteForOptions) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DeleteForOptions(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DeleteForOptions", str)
+	}
+	return nil
+}
+
+func (e DeleteForOptions) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
 type FileType string
 
 const (

@@ -1,7 +1,9 @@
 package services
 
 import (
+	"fmt"
 	"log"
+	"slices"
 	"time"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
@@ -10,6 +12,14 @@ import (
 	"github.com/chack-check/chats-service/api/v1/utils"
 	"github.com/chack-check/chats-service/rabbit"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/lib/pq"
+)
+
+type DeleteForOptions string
+
+const (
+	DeleteForMe  DeleteForOptions = "me"
+	DeleteForAll DeleteForOptions = "all"
 )
 
 func getMessageEventFromMessage(message *models.Message, chat *models.Chat) *rabbit.MessageEvent {
@@ -75,13 +85,19 @@ func getReadMessageEventFromMessage(message *models.Message, chat *models.Chat) 
 
 type MessagesManager struct {
 	MessagesQueries *models.MessagesQueries
+	ChatsQueries    *models.ChatsQueries
 }
 
-func (manager *MessagesManager) GetChatAll(chatId uint, page int, perPage int) *schemas.PaginatedResponse[models.Message] {
-	count := manager.MessagesQueries.GetAllInChatCount(chatId)
-	messages := manager.MessagesQueries.GetAllInChat(page, perPage, chatId)
+func (manager *MessagesManager) GetChatAll(token *jwt.Token, chatId uint, page int, perPage int) (*schemas.PaginatedResponse[models.Message], error) {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	count := manager.MessagesQueries.GetAllInChatCount(models.GetAllInChatCountParams{ChatId: chatId, UserId: uint(tokenSubject.UserId)})
+	messages := manager.MessagesQueries.GetAllInChat(models.GetAllInChatParams{ChatId: chatId, Page: page, PerPage: perPage})
 	paginatedResponse := schemas.NewPaginatedResponse(page, perPage, int(count), *messages)
-	return &paginatedResponse
+	return &paginatedResponse, nil
 }
 
 func (manager *MessagesManager) getTextMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
@@ -196,7 +212,7 @@ func (manager *MessagesManager) Read(chat *models.Chat, messageId uint, token *j
 		return nil, err
 	}
 
-	message, err := manager.MessagesQueries.GetConcrete(chat.ID, messageId)
+	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chat.ID, MessageId: messageId, UserId: uint(tokenSubject.UserId)})
 	if err != nil {
 		return nil, err
 	}
@@ -215,19 +231,90 @@ func (manager *MessagesManager) Read(chat *models.Chat, messageId uint, token *j
 	return message, nil
 }
 
-func (manager *MessagesManager) ReactMessage(userId uint, chatId uint, messageId uint, content string) (*models.Message, error) {
-	message, err := manager.MessagesQueries.GetConcrete(chatId, messageId)
+func (manager *MessagesManager) ReactMessage(token *jwt.Token, chatId uint, messageId uint, content string) (*models.Message, error) {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chatId, MessageId: messageId, UserId: uint(tokenSubject.UserId)})
 	if err != nil {
 		return &models.Message{}, err
 	}
 
-	manager.MessagesQueries.AddReaction(userId, content, message)
+	manager.MessagesQueries.AddReaction(uint(tokenSubject.UserId), content, message)
 
+	return message, nil
+}
+
+func (manager *MessagesManager) validateCanUserDeleteMessage(userId uint, chat *models.Chat, message *models.Message) bool {
+	return slices.Contains(chat.Members, int64(userId))
+}
+
+func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, messageId uint, deleteFor DeleteForOptions) error {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return err
+	}
+
+	chat, err := manager.ChatsQueries.GetConcrete(uint(tokenSubject.UserId), chatId)
+	if err != nil {
+		return err
+	}
+
+	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chatId, MessageId: messageId, UserId: uint(tokenSubject.UserId)})
+	if err != nil {
+		return err
+	}
+
+	if !manager.validateCanUserDeleteMessage(uint(tokenSubject.UserId), chat, message) {
+		return fmt.Errorf("The user with id %d can't delete message with id %d", tokenSubject.UserId, messageId)
+	}
+
+	deleteForArray := []int32{}
+	if deleteFor == DeleteForMe {
+		deleteForArray = append(deleteForArray, int32(tokenSubject.UserId))
+	} else {
+		for _, member := range chat.Members {
+			deleteForArray = append(deleteForArray, int32(member))
+		}
+	}
+
+	err = manager.MessagesQueries.DeleteMessage(message, deleteForArray)
+	return err
+}
+
+func (manager *MessagesManager) Update(chat *models.Chat, messageId uint, updateData model.ChangeMessageRequest, token *jwt.Token) (*models.Message, error) {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chat.ID, MessageId: messageId, UserId: uint(tokenSubject.UserId)})
+	if err != nil {
+		return nil, err
+	}
+
+	message.Content = *updateData.Content
+	attachments := pq.StringArray{}
+	for _, attachment := range updateData.Attachments {
+		attachments = append(attachments, attachment)
+	}
+
+	mentioned := pq.Int32Array{}
+	for _, ment := range updateData.Mentioned {
+		mentioned = append(mentioned, int32(*ment))
+	}
+
+	message.Attachments = attachments
+	message.Mentioned = mentioned
+	manager.MessagesQueries.Update(message)
 	return message, nil
 }
 
 func NewMessagesManager() *MessagesManager {
 	return &MessagesManager{
 		MessagesQueries: &models.MessagesQueries{},
+		ChatsQueries:    &models.ChatsQueries{},
 	}
 }

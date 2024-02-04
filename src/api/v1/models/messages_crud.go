@@ -8,11 +8,40 @@ import (
 	"github.com/lib/pq"
 )
 
+type GetConcreteMessageParams struct {
+	ChatId      uint
+	MessageId   uint
+	WithDeleted bool `default:"false"`
+	UserId      uint `default:"0"`
+}
+
+type GetAllInChatParams struct {
+	Page        int
+	PerPage     int
+	ChatId      uint
+	WithDeleted bool `default:"false"`
+	UserId      uint `default:"0"`
+}
+
+type GetAllInChatCountParams struct {
+	ChatId      uint
+	WithDeleted bool `default:"false"`
+	UserId      uint `default:"0"`
+}
+
 type MessagesQueries struct{}
 
-func (queries *MessagesQueries) GetConcrete(chatId uint, messageId uint) (*Message, error) {
+func (queries *MessagesQueries) GetConcrete(params GetConcreteMessageParams) (*Message, error) {
 	var message Message
-	database.DB.Where("chat_id = ?", chatId).Where("id = ?", messageId).First(&message)
+
+	if params.WithDeleted {
+		database.DB.Where("chat_id = ? AND id = ?", params.ChatId, params.MessageId).First(&message)
+	} else {
+		database.DB.Where(
+			"chat_id = ? AND NOT ? = ANY(deleted_for) AND id = ?", params.ChatId, params.UserId, params.MessageId,
+		).First(&message)
+	}
+
 	if message.ID == 0 {
 		return &Message{}, fmt.Errorf("Chat with this ID doesn't exist")
 	}
@@ -35,21 +64,39 @@ func (queries *MessagesQueries) Read(message *Message, userId uint) error {
 	return nil
 }
 
-func (queries *MessagesQueries) GetAllInChat(page int, perPage int, chatId uint) *[]Message {
+func (queries *MessagesQueries) GetAllInChat(params GetAllInChatParams) *[]Message {
 	var messages []Message
-	database.DB.Scopes(Paginate(page, perPage)).Preload(
-		"Reactions",
-	).Where(
-		"chat_id = ?", chatId,
-	).Order(
-		"created_at DESC",
-	).Find(&messages)
+
+	if params.WithDeleted {
+		database.DB.Scopes(Paginate(params.Page, params.PerPage)).Preload(
+			"Reactions",
+		).Where(
+			"chat_id = ?", params.ChatId,
+		).Order(
+			"created_at DESC",
+		).Find(&messages)
+	} else {
+		database.DB.Scopes(Paginate(params.Page, params.PerPage)).Preload(
+			"Reactions",
+		).Where(
+			"chat_id = ? AND NOT ? = ANY(deleted_for)", params.ChatId, params.UserId,
+		).Order(
+			"created_at DESC",
+		).Find(&messages)
+	}
+
 	return &messages
 }
 
-func (queries *MessagesQueries) GetAllInChatCount(chatId uint) int64 {
+func (queries *MessagesQueries) GetAllInChatCount(params GetAllInChatCountParams) int64 {
 	var count int64
-	database.DB.Model(&Message{}).Where("chat_id = ?", chatId).Count(&count)
+
+	if params.WithDeleted {
+		database.DB.Model(&Message{}).Where("chat_id = ?", params.ChatId).Count(&count)
+	} else {
+		database.DB.Model(&Message{}).Where("chat_id = ? AND NOT ? = ANY(deleted_for)", params.ChatId, params.UserId).Count(&count)
+	}
+
 	return count
 }
 
@@ -60,6 +107,17 @@ func (queries *MessagesQueries) Create(message *Message) error {
 		return result.Error
 	}
 
+	return nil
+}
+
+func (queris *MessagesQueries) DeleteMessage(message *Message, deleteFor []int32) error {
+	deleteForArray := pq.Int32Array{}
+	for _, deleteForId := range deleteFor {
+		deleteForArray = append(deleteForArray, deleteForId)
+	}
+
+	message.DeletedFor = deleteForArray
+	database.DB.Save(message)
 	return nil
 }
 
@@ -76,4 +134,8 @@ func (queries *MessagesQueries) AddReaction(userId uint, content string, message
 
 	database.DB.Create(&newReaction)
 	message.Reactions = append(message.Reactions, newReaction)
+}
+
+func (queries *MessagesQueries) Update(message *Message) {
+	database.DB.Save(message)
 }

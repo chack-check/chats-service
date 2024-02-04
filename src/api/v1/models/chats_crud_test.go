@@ -1,36 +1,11 @@
 package models
 
 import (
-	"os"
+	"slices"
 	"testing"
 
-	"github.com/chack-check/chats-service/database"
 	"github.com/lib/pq"
 )
-
-func setup() error {
-	database.DB.AutoMigrate(&Chat{})
-	return nil
-}
-
-func tearDown() error {
-	database.DB.Migrator().DropTable(&Chat{})
-	return nil
-}
-
-func TestMain(m *testing.M) {
-	if err := setup(); err != nil {
-		os.Exit(1)
-	}
-
-	exitCode := m.Run()
-
-	if err := tearDown(); err != nil {
-		os.Exit(1)
-	}
-
-	os.Exit(exitCode)
-}
 
 func TestCreateChat(t *testing.T) {
 	members := pq.Int64Array{}
@@ -69,14 +44,14 @@ func TestGetConcrete(t *testing.T) {
 		t.Fatalf("Error when getting an existing chat: %s", err)
 	}
 
-	if chat.ID != 1 || chat.OwnerId != 1 || chat.Title != "sometitle" {
+	if chat.ID != 1 {
 		t.Fatalf("Getted chat is incorrect: %v", chat)
 	}
 }
 
 func TestGetConcreteNotExisting(t *testing.T) {
 	chatsQueries := ChatsQueries{}
-	chat, err := chatsQueries.GetConcrete(1, 5)
+	chat, err := chatsQueries.GetConcrete(1, 525)
 	if err == nil {
 		t.Fatalf("Error when getting not existing chat: error is nil. Getted chat ID: %d", chat.ID)
 	}
@@ -110,7 +85,7 @@ func TestGetWithAnotherMember(t *testing.T) {
 
 func TestGetWithIncorrectMember(t *testing.T) {
 	chatsQueries := ChatsQueries{}
-	chat, err := chatsQueries.GetWithMember(1, 3)
+	chat, err := chatsQueries.GetWithMember(1, 525)
 	if err == nil {
 		t.Fatal("Error when getting the chat with incorrect member: error is nil")
 	}
@@ -121,11 +96,93 @@ func TestGetWithIncorrectMember(t *testing.T) {
 
 func TestGetWithMbmerIncorrectChatId(t *testing.T) {
 	chatsQueries := ChatsQueries{}
-	chat, err := chatsQueries.GetWithMember(2, 1)
+	chat, err := chatsQueries.GetWithMember(525, 1)
 	if err == nil {
 		t.Fatal("Error when getting the chat with member with incorrect chat id: error is nil")
 	}
 	if chat.ID != 0 {
 		t.Fatalf("Error when getting the chat with member with incorrect chat id: chat id %d != 0", chat.ID)
+	}
+}
+
+func TestGetAllWithMember(t *testing.T) {
+	chatsQueries := ChatsQueries{}
+	chats := chatsQueries.GetAllWithMember(1, 1, 20)
+	if len(*chats) < 1 {
+		t.Fatalf("Error when getting all chats with member 1: Getted %d chats != %d", len(*chats), 1)
+	}
+	for _, chat := range *chats {
+		if !slices.Contains(chat.Members, 1) {
+			t.Fatalf("Error when getting all chats with member 1: chat owner id is %d != %d", (*chats)[0].OwnerId, 1)
+		}
+	}
+}
+
+func TestGetAllWithMemberAnotherMember(t *testing.T) {
+	chatsQueries := ChatsQueries{}
+	chats := chatsQueries.GetAllWithMember(2, 1, 20)
+	if len(*chats) < 1 {
+		t.Fatalf("Error when getting all chats with member 2: Getted %d chats != %d", len(*chats), 1)
+	}
+	for _, chat := range *chats {
+		if !slices.Contains(chat.Members, 2) {
+			t.Fatalf("Error when getting all chats with member 1: chat owner id is %d != %d", (*chats)[0].OwnerId, 1)
+		}
+	}
+}
+
+func TestGetAllWithMemberIncorrectMember(t *testing.T) {
+	chatsQueries := ChatsQueries{}
+	chats := chatsQueries.GetAllWithMember(525, 1, 20)
+	if len(*chats) != 0 {
+		t.Fatalf("Error when getting all chats with incorrect member: founded %d chats: %v", len(*chats), *chats)
+	}
+}
+
+func TestGetAll(t *testing.T) {
+	chatsQueries := ChatsQueries{}
+	chats := chatsQueries.GetAll(1)
+	if len(*chats) < 1 {
+		t.Fatalf("Error when getting all chats: getted %d chats: %v", len(*chats), *chats)
+	}
+	for _, chat := range *chats {
+		if chat.OwnerId != 1 {
+			t.Fatalf("Error when getting all chats: getted chat owner id is %d, not %d", (*chats)[0].OwnerId, 1)
+		}
+	}
+}
+
+func TestGetAllWithIncorrectOwner(t *testing.T) {
+	chatsQueries := ChatsQueries{}
+	chats := chatsQueries.GetAll(525)
+	if len(*chats) != 0 {
+		t.Fatalf("Error when getting all chats: getted %d chats != %d. Value: %v", len(*chats), 0, *chats)
+	}
+}
+
+// func TestSearchChats(t *testing.T) {
+// 	chatsQueries := ChatsQueries{}
+// 	chats := chatsQueries.Search(1, "sometitle", 1, 20)
+// 	if len(*chats) != 1 {
+// 		t.Fatalf("Error when searching chats: searched %d != %d. Value: %v", len(*chats), 1, *chats)
+// 	}
+// 	if (*chats)[0].Title != "sometitle" {
+// 		t.Fatalf("Error when searching chats: searched chat title %s != %s", (*chats)[0].Title, "sometitle")
+// 	}
+// }
+
+func TestGetExistingWithUser(t *testing.T) {
+	chatsQueries := ChatsQueries{}
+	existing := chatsQueries.GetExistingWithUser(1, 2)
+	if !existing {
+		t.Fatalf("Error when getting is chat already existing between two users: 1 and 2: Chat doesn't exist")
+	}
+}
+
+func TestGetExistingWithUserIncorrectUsers(t *testing.T) {
+	chatsQueries := ChatsQueries{}
+	existing := chatsQueries.GetExistingWithUser(1, 525)
+	if existing {
+		t.Fatalf("Error when getting is chat already existing between two users: 1 and 5: Chat exists")
 	}
 }

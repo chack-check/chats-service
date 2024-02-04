@@ -114,6 +114,11 @@ type PaginatedMessages {
   data: [Message!]
 }
 
+enum DeleteForOptions {
+  ME
+  ALL
+}
+
 type Query {
 	getChatMessages(chatId: Int!, page: Int, perPage: Int): PaginatedMessages!
 	getChats(page: Int, perPage: Int): PaginatedChats!
@@ -132,6 +137,8 @@ type Mutation {
   editChat(chatId: Int!, request: EditChatRequest!): Chat!
   readMessage(chatId: Int!, messageId: Int): Message!
   reactMessage(chatId: Int!, messageId: Int!, content: String!): Message!
+  deleteMessage(chatId: Int!, messageId: Int!, deleteFor: DeleteForOptions!): Boolean
+  deleteChat(chatId: Int!): Boolean
 }
 
 schema {

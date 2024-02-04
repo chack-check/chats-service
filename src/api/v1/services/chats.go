@@ -11,6 +11,7 @@ import (
 	"github.com/chack-check/chats-service/protousers"
 	"github.com/chack-check/chats-service/rabbit"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/lib/pq"
 )
 
 func getChatEventFromChat(chat *models.Chat) *rabbit.ChatEvent {
@@ -222,6 +223,16 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 		return fmt.Errorf("You can't create chat for you")
 	}
 
+	members := pq.Int32Array{int32(tokenSubject.UserId), int32(chatUserId)}
+	if chatId := manager.ChatsQueries.GetDeletedChatId(members); chatId > 0 {
+		manager.ChatsQueries.RestoreChat(chatId)
+		if err := manager.sendChatEvent(chat); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	currentUser, err := grpc_client.UsersGrpcClient.GetUserById(tokenSubject.UserId)
 
 	if err != nil || currentUser == nil {
@@ -242,6 +253,10 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 
 	manager.sendChatEvent(chat)
 	return nil
+}
+
+func (manager *ChatsManager) Delete(chat *models.Chat) {
+	manager.ChatsQueries.Delete(chat)
 }
 
 func NewChatsManager() *ChatsManager {

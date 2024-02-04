@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/chack-check/chats-service/database"
+	"github.com/lib/pq"
 )
 
 type ChatsQueries struct{}
@@ -73,9 +74,9 @@ func (queries *ChatsQueries) Search(userId uint, query string, page int, perPage
 	var chats []Chat
 
 	database.DB.Scopes(Paginate(page, perPage)).Model(&Chat{}).Joins(
-		"JOIN json_each_text(title) d ON true",
+		"JOIN json_each_text(to_json(title)) d ON true",
 	).Where(
-		"owner_id = ? AND d.key ILIKE '%?%' AND d.value = '?'", userId, query, userId,
+		"? = ANY(members) AND ((d.key ILIKE ? AND d.value = ?) OR title ILIKE ?)", userId, fmt.Sprintf("%%%s%%", query), fmt.Sprintf("%d", userId), fmt.Sprintf("%%%s%%", query),
 	).Find(&chats)
 
 	return &chats
@@ -85,4 +86,22 @@ func (queries *ChatsQueries) GetExistingWithUser(userId uint, anotherUserId uint
 	var count int64
 	database.DB.Model(&Chat{}).Where("? = ANY(members) AND ? = ANY(members)", userId, anotherUserId).Count(&count)
 	return count > 0
+}
+
+func (queries *ChatsQueries) Delete(chat *Chat) {
+	database.DB.Delete(chat)
+}
+
+func (queries *ChatsQueries) GetDeletedChatId(members pq.Int32Array) uint {
+	chats := new([]Chat)
+	database.DB.Unscoped().Model(&Chat{}).Where("deleted_at IS NOT NULL AND members = ? AND type = ?", members, "user").Find(chats)
+	if len(*chats) == 0 {
+		return 0
+	}
+
+	return (*chats)[0].ID
+}
+
+func (queries *ChatsQueries) RestoreChat(chatId uint) {
+	database.DB.Unscoped().Model(&Chat{}).Where("id  = ?", chatId).Update("deleted_at", nil)
 }

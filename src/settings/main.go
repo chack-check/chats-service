@@ -23,6 +23,8 @@ type BaseSettings struct {
 	APP_ALLOW_ORIGINS            string
 	APP_ENVIRONMENT              string
 	SECRET_KEY                   string
+	BASE_DIR                     string
+	TEST_DATA_DIR                string
 }
 
 var Settings *BaseSettings = NewSettings()
