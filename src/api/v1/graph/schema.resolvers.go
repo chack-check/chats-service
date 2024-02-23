@@ -238,12 +238,12 @@ func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (
 	chatsManager := services.NewChatsManager()
 	paginatedChats := chatsManager.GetAll(token, pageValue, perPageValue)
 	if paginatedChats == nil {
-		return nil, fmt.Errorf("Incorrect token")
+		return nil, fmt.Errorf("incorrect token")
 	}
 
 	var chats []*model.Chat
 	for _, chat := range *paginatedChats.Data {
-		chatSchema := utils.DbChatToSchema(chat)
+		chatSchema := utils.DbChatToSchema(*chat)
 		chats = append(chats, &chatSchema)
 	}
 
@@ -270,7 +270,7 @@ func (r *queryResolver) SearchChats(ctx context.Context, query string, page *int
 
 	var chatsSchemas []*model.Chat
 	for _, chat := range *chats.Data {
-		chatSchema := utils.DbChatToSchema(chat)
+		chatSchema := utils.DbChatToSchema(*chat)
 		chatsSchemas = append(chatsSchemas, &chatSchema)
 	}
 
@@ -306,8 +306,18 @@ func (r *queryResolver) GetChatAttachments(ctx context.Context, chatID int, file
 }
 
 // SearchMessages is the resolver for the searchMessages field.
-func (r *queryResolver) SearchMessages(ctx context.Context, query string, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error) {
-	panic(fmt.Errorf("not implemented: SearchMessages - searchMessages"))
+func (r *queryResolver) SearchMessages(ctx context.Context, query *string, chatID *int, page *int, perPage *int) (*model.PaginatedMessages, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return nil, err
+	}
+
+	return &model.PaginatedMessages{
+		Page:     1,
+		NumPages: 1,
+		PerPage:  20,
+		Data:     []*model.Message{},
+	}, nil
 }
 
 // Mutation returns MutationResolver implementation.

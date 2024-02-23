@@ -108,12 +108,12 @@ func TestGetWithMbmerIncorrectChatId(t *testing.T) {
 func TestGetAllWithMember(t *testing.T) {
 	chatsQueries := ChatsQueries{}
 	chats := chatsQueries.GetAllWithMember(1, 1, 20)
-	if len(*chats) < 1 {
-		t.Fatalf("Error when getting all chats with member 1: Getted %d chats != %d", len(*chats), 1)
+	if len(chats) < 1 {
+		t.Fatalf("Error when getting all chats with member 1: Getted %d chats != %d", len(chats), 1)
 	}
-	for _, chat := range *chats {
+	for _, chat := range chats {
 		if !slices.Contains(chat.Members, 1) {
-			t.Fatalf("Error when getting all chats with member 1: chat owner id is %d != %d", (*chats)[0].OwnerId, 1)
+			t.Fatalf("Error when getting all chats with member 1: chat owner id is %d != %d", chats[0].OwnerId, 1)
 		}
 	}
 }
@@ -121,12 +121,12 @@ func TestGetAllWithMember(t *testing.T) {
 func TestGetAllWithMemberAnotherMember(t *testing.T) {
 	chatsQueries := ChatsQueries{}
 	chats := chatsQueries.GetAllWithMember(2, 1, 20)
-	if len(*chats) < 1 {
-		t.Fatalf("Error when getting all chats with member 2: Getted %d chats != %d", len(*chats), 1)
+	if len(chats) < 1 {
+		t.Fatalf("Error when getting all chats with member 2: Getted %d chats != %d", len(chats), 1)
 	}
-	for _, chat := range *chats {
+	for _, chat := range chats {
 		if !slices.Contains(chat.Members, 2) {
-			t.Fatalf("Error when getting all chats with member 1: chat owner id is %d != %d", (*chats)[0].OwnerId, 1)
+			t.Fatalf("Error when getting all chats with member 1: chat owner id is %d != %d", chats[0].OwnerId, 1)
 		}
 	}
 }
@@ -134,8 +134,8 @@ func TestGetAllWithMemberAnotherMember(t *testing.T) {
 func TestGetAllWithMemberIncorrectMember(t *testing.T) {
 	chatsQueries := ChatsQueries{}
 	chats := chatsQueries.GetAllWithMember(525, 1, 20)
-	if len(*chats) != 0 {
-		t.Fatalf("Error when getting all chats with incorrect member: founded %d chats: %v", len(*chats), *chats)
+	if len(chats) != 0 {
+		t.Fatalf("Error when getting all chats with incorrect member: founded %d chats: %v", len(chats), chats)
 	}
 }
 

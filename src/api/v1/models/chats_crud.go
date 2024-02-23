@@ -38,12 +38,12 @@ func (queries *ChatsQueries) GetWithMember(chatId uint, userId uint) (*Chat, err
 	return &chat, nil
 }
 
-func (queries *ChatsQueries) GetAllWithMember(userId uint, page int, perPage int) *[]Chat {
-	var chats []Chat
+func (queries *ChatsQueries) GetAllWithMember(userId uint, page int, perPage int) []*Chat {
+	var chats []*Chat
 
 	database.DB.Scopes(Paginate(page, perPage)).Where("? = ANY(members)", userId).Find(&chats)
 	log.Printf("User chats count: %v", len(chats))
-	return &chats
+	return chats
 }
 
 func (queries *ChatsQueries) GetAllWithMemberCount(userId uint) *int64 {
@@ -70,8 +70,8 @@ func (queries *ChatsQueries) SearchCount(userId uint, query string, page int, pe
 	return count
 }
 
-func (queries *ChatsQueries) Search(userId uint, query string, page int, perPage int) *[]Chat {
-	var chats []Chat
+func (queries *ChatsQueries) Search(userId uint, query string, page int, perPage int) []*Chat {
+	var chats []*Chat
 
 	database.DB.Scopes(Paginate(page, perPage)).Model(&Chat{}).Joins(
 		"JOIN json_each_text(to_json(title)) d ON true",
@@ -79,7 +79,7 @@ func (queries *ChatsQueries) Search(userId uint, query string, page int, perPage
 		"? = ANY(members) AND ((d.key ILIKE ? AND d.value = ?) OR title ILIKE ?)", userId, fmt.Sprintf("%%%s%%", query), fmt.Sprintf("%d", userId), fmt.Sprintf("%%%s%%", query),
 	).Find(&chats)
 
-	return &chats
+	return chats
 }
 
 func (queries *ChatsQueries) GetExistingWithUser(userId uint, anotherUserId uint) bool {

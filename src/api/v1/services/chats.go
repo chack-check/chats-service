@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -13,6 +12,15 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lib/pq"
 )
+
+func setupChatTitleAndAvatar(chat *models.Chat, chatUser *protousers.UserResponse) {
+	chat.Title = fmt.Sprintf("%s %s", chatUser.LastName, chatUser.FirstName)
+	if chatUser.ConvertedAvatarUrl != "" {
+		chat.AvatarURL = chatUser.ConvertedAvatarUrl
+	} else {
+		chat.AvatarURL = chatUser.OriginalAvatarUrl
+	}
+}
 
 func getChatEventFromChat(chat *models.Chat) *rabbit.ChatEvent {
 	members := []int{}
@@ -40,42 +48,25 @@ func getChatEventFromChat(chat *models.Chat) *rabbit.ChatEvent {
 	}
 }
 
+func setupUserChatData(chat *models.Chat, currentUserId int) {
+	var anotherUserId int64
+	for _, member := range chat.Members {
+		if member != int64(currentUserId) {
+			anotherUserId = member
+		}
+	}
+
+	anotherUser, err := grpc_client.UsersGrpcClient.GetUserById(int(anotherUserId))
+	if err != nil {
+		chat.Title = "Untitled"
+		chat.AvatarURL = ""
+	} else {
+		setupChatTitleAndAvatar(chat, anotherUser)
+	}
+}
+
 type ChatsManager struct {
 	ChatsQueries *models.ChatsQueries
-}
-
-func (manager *ChatsManager) decodeUserChatTitle(currentUserId int, title string) string {
-	decodedTitles := map[string]int{}
-	err := json.Unmarshal([]byte(title), &decodedTitles)
-
-	if err != nil {
-		return "Untitled"
-	}
-
-	for chatTitle, id := range decodedTitles {
-		if id != currentUserId {
-			return chatTitle
-		}
-	}
-
-	return "Untitled"
-}
-
-func (manager *ChatsManager) decodeUserChatAvatar(currentUserId int, avatarUrl string) string {
-	decodedAvatars := map[string]int{}
-	err := json.Unmarshal([]byte(avatarUrl), &decodedAvatars)
-
-	if err != nil {
-		return "Untitled"
-	}
-
-	for chatAvatarUrl, id := range decodedAvatars {
-		if id != currentUserId {
-			return chatAvatarUrl
-		}
-	}
-
-	return "Untitled"
 }
 
 func (manager *ChatsManager) GetConcrete(chatID uint, token *jwt.Token) (*models.Chat, error) {
@@ -86,17 +77,18 @@ func (manager *ChatsManager) GetConcrete(chatID uint, token *jwt.Token) (*models
 	}
 
 	chat, err := manager.ChatsQueries.GetWithMember(chatID, uint(tokenSubject.UserId))
-	chat.Title = manager.decodeUserChatTitle(tokenSubject.UserId, chat.Title)
-	chat.AvatarURL = manager.decodeUserChatAvatar(tokenSubject.UserId, chat.AvatarURL)
-
 	if err != nil {
 		return nil, err
+	}
+
+	if chat.Type == "user" {
+		setupUserChatData(chat, tokenSubject.UserId)
 	}
 
 	return chat, nil
 }
 
-func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *schemas.PaginatedResponse[models.Chat] {
+func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *schemas.PaginatedResponse[*models.Chat] {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil
@@ -105,7 +97,13 @@ func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *sc
 	count := manager.ChatsQueries.GetAllWithMemberCount(uint(tokenSubject.UserId))
 	countValue := *count
 	chats := manager.ChatsQueries.GetAllWithMember(uint(tokenSubject.UserId), page, perPage)
-	paginatedResponse := schemas.NewPaginatedResponse(page, perPage, int(countValue), *chats)
+	for _, chat := range chats {
+		if chat.Type == "user" {
+			setupUserChatData(chat, tokenSubject.UserId)
+		}
+	}
+
+	paginatedResponse := schemas.NewPaginatedResponse(page, perPage, int(countValue), chats)
 	return &paginatedResponse
 }
 
@@ -123,40 +121,20 @@ func (manager *ChatsManager) createGroupChat(chat *models.Chat, userId int) erro
 func (manager *ChatsManager) validateUserChatExists(userId int, anotherUserId int) error {
 	alreadyExists := manager.ChatsQueries.GetExistingWithUser(uint(userId), uint(anotherUserId))
 	if alreadyExists {
-		return fmt.Errorf("You already have chat with this user")
+		return fmt.Errorf("you already have chat with this user")
 	}
 
 	return nil
 }
 
 func (manager *ChatsManager) createUserChat(chat *models.Chat, currentUser *protousers.UserResponse, chatUser *protousers.UserResponse) error {
-	chatTitleForCurrentUser := fmt.Sprintf("%s %s", currentUser.LastName, currentUser.FirstName)
-	chatTitleForChatUser := fmt.Sprintf("%s %s", chatUser.LastName, chatUser.FirstName)
-	chatTitles := map[string]int{
-		chatTitleForCurrentUser: int(currentUser.Id),
-		chatTitleForChatUser:    int(chatUser.Id),
-	}
-	chatAvatarUrls := map[string]int{
-		currentUser.AvatarUrl: int(currentUser.Id),
-		chatUser.AvatarUrl:    int(chatUser.Id),
-	}
-	jsonTitles, err := json.Marshal(chatTitles)
-	if err != nil {
-		return err
-	}
-
-	jsonAvatars, err := json.Marshal(chatAvatarUrls)
-	if err != nil {
-		return err
-	}
-
 	chat.Members = []int64{int64(currentUser.Id), int64(chatUser.Id)}
 	chat.OwnerId = 0
-	chat.Title = string(jsonTitles)
+	chat.Title = ""
 	chat.Type = "user"
-	chat.AvatarURL = string(jsonAvatars)
+	chat.AvatarURL = ""
 
-	err = manager.validateUserChatExists(int(currentUser.Id), int(chatUser.Id))
+	err := manager.validateUserChatExists(int(currentUser.Id), int(chatUser.Id))
 	if err != nil {
 		return err
 	}
@@ -167,6 +145,7 @@ func (manager *ChatsManager) createUserChat(chat *models.Chat, currentUser *prot
 		return err
 	}
 
+	setupChatTitleAndAvatar(chat, chatUser)
 	return nil
 }
 
@@ -177,13 +156,13 @@ func (manager *ChatsManager) sendChatEvent(chat *models.Chat) error {
 
 	if err != nil {
 		log.Printf("Error when publishing chat event in queue: %v", err)
-		return fmt.Errorf("Error sending chat event")
+		return fmt.Errorf("error sending chat event")
 	}
 
 	return nil
 }
 
-func (manager *ChatsManager) Search(query string, token *jwt.Token, page int, perPage int) (*schemas.PaginatedResponse[models.Chat], error) {
+func (manager *ChatsManager) Search(query string, token *jwt.Token, page int, perPage int) (*schemas.PaginatedResponse[*models.Chat], error) {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil, err
@@ -199,7 +178,13 @@ func (manager *ChatsManager) Search(query string, token *jwt.Token, page int, pe
 
 	chatsCount := manager.ChatsQueries.SearchCount(uint(tokenSubject.UserId), query, page, perPage)
 	chats := manager.ChatsQueries.Search(uint(tokenSubject.UserId), query, page, perPage)
-	response := schemas.NewPaginatedResponse(page, perPage, int(chatsCount), *chats)
+	for _, chat := range chats {
+		if chat.Type == "user" {
+			setupUserChatData(chat, tokenSubject.UserId)
+		}
+	}
+
+	response := schemas.NewPaginatedResponse(page, perPage, int(chatsCount), chats)
 	return &response, nil
 }
 
@@ -220,7 +205,7 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 	}
 
 	if chatUserId == uint(tokenSubject.UserId) {
-		return fmt.Errorf("You can't create chat for you")
+		return fmt.Errorf("you can't create chat for you")
 	}
 
 	members := pq.Int32Array{int32(tokenSubject.UserId), int32(chatUserId)}
@@ -236,13 +221,13 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 	currentUser, err := grpc_client.UsersGrpcClient.GetUserById(tokenSubject.UserId)
 
 	if err != nil || currentUser == nil {
-		return fmt.Errorf("There is no user with id %d", tokenSubject.UserId)
+		return fmt.Errorf("there is no user with id %d", tokenSubject.UserId)
 	}
 
 	chatUser, err := grpc_client.UsersGrpcClient.GetUserById(int(chatUserId))
 
 	if err != nil || chatUser == nil {
-		return fmt.Errorf("There is no user with id %d", chatUserId)
+		return fmt.Errorf("there is no user with id %d", chatUserId)
 	}
 
 	log.Printf("Creating user chat: %v, user id: %v, chat user: %v", chat, tokenSubject.UserId, chatUser)

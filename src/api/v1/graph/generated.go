@@ -124,7 +124,7 @@ type ComplexityRoot struct {
 		GetChatMessages    func(childComplexity int, chatID int, page *int, perPage *int) int
 		GetChats           func(childComplexity int, page *int, perPage *int) int
 		SearchChats        func(childComplexity int, query string, page *int, perPage *int) int
-		SearchMessages     func(childComplexity int, query string, chatID int, page *int, perPage *int) int
+		SearchMessages     func(childComplexity int, query *string, chatID *int, page *int, perPage *int) int
 	}
 
 	Reaction struct {
@@ -151,7 +151,7 @@ type QueryResolver interface {
 	SearchChats(ctx context.Context, query string, page *int, perPage *int) (*model.PaginatedChats, error)
 	GetChat(ctx context.Context, chatID int) (*model.Chat, error)
 	GetChatAttachments(ctx context.Context, chatID int, fileType model.FileType) (*model.FileObjectResponse, error)
-	SearchMessages(ctx context.Context, query string, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error)
+	SearchMessages(ctx context.Context, query *string, chatID *int, page *int, perPage *int) (*model.PaginatedMessages, error)
 }
 
 type executableSchema struct {
@@ -632,7 +632,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.SearchMessages(childComplexity, args["query"].(string), args["chatId"].(int), args["page"].(*int), args["perPage"].(*int)), true
+		return e.complexity.Query.SearchMessages(childComplexity, args["query"].(*string), args["chatId"].(*int), args["page"].(*int), args["perPage"].(*int)), true
 
 	case "Reaction.content":
 		if e.complexity.Reaction.Content == nil {
@@ -1163,19 +1163,19 @@ func (ec *executionContext) field_Query_searchChats_args(ctx context.Context, ra
 func (ec *executionContext) field_Query_searchMessages_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 *string
 	if tmp, ok := rawArgs["query"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["query"] = arg0
-	var arg1 int
+	var arg1 *int
 	if tmp, ok := rawArgs["chatId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
-		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -4065,7 +4065,7 @@ func (ec *executionContext) _Query_searchMessages(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().SearchMessages(rctx, fc.Args["query"].(string), fc.Args["chatId"].(int), fc.Args["page"].(*int), fc.Args["perPage"].(*int))
+		return ec.resolvers.Query().SearchMessages(rctx, fc.Args["query"].(*string), fc.Args["chatId"].(*int), fc.Args["page"].(*int), fc.Args["perPage"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

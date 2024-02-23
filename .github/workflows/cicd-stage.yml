@@ -5,6 +5,21 @@ on:
     branches: [ "dev", "development" ]
 
 jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build tests
+      run: docker compose -f docker-compose.test.yml up --build -d
+
+    - name: Run tests
+      run: docker compose -f docker-compose.test.yml exec -it test-service go test -v ./... && docker compose -f docker-compose.test.yml down -v
+
+    - name: Dropdown tests
+      run: docker compose -f docker-compose.test.yml down -v
   build:
     runs-on: ubuntu-latest
     steps:

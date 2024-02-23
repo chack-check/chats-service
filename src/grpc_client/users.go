@@ -49,7 +49,7 @@ func (usersGrpc *UsersGrpc) GetUserByToken(token string) (*pb.UserResponse, erro
 	user, err := usersGrpc.client.GetUserByToken(context.Background(), &pb.GetUserByTokenRequest{Token: token})
 
 	if err != nil || user == nil {
-		return user, fmt.Errorf("Error when getting user: %v", err)
+		return user, fmt.Errorf("error when getting user: %v", err)
 	}
 
 	return user, nil
@@ -57,19 +57,20 @@ func (usersGrpc *UsersGrpc) GetUserByToken(token string) (*pb.UserResponse, erro
 
 func (usersGrpc *MockUsersGrpc) GetUserByToken(token string) (*pb.UserResponse, error) {
 	return &pb.UserResponse{
-		Id:             1,
-		Username:       "testuser",
-		Phone:          "testphone",
-		Email:          "testemail",
-		FirstName:      "testfirstname",
-		LastName:       "testlastname",
-		MiddleName:     "testmiddlename",
-		Activity:       "testactivity",
-		Status:         "teststatus",
-		EmailConfirmed: true,
-		PhoneConfirmed: true,
-		LastSeen:       "2023-01-01T20:00:00Z",
-		AvatarUrl:      "testurl",
+		Id:                 1,
+		Username:           "testuser",
+		Phone:              "testphone",
+		Email:              "testemail",
+		FirstName:          "testfirstname",
+		LastName:           "testlastname",
+		MiddleName:         "testmiddlename",
+		Activity:           "testactivity",
+		Status:             "teststatus",
+		EmailConfirmed:     true,
+		PhoneConfirmed:     true,
+		LastSeen:           "2023-01-01T20:00:00Z",
+		OriginalAvatarUrl:  "testurl",
+		ConvertedAvatarUrl: "testurl",
 	}, nil
 }
 
@@ -77,7 +78,7 @@ func (UsersGrpc *UsersGrpc) GetUserByRefreshToken(token string) (*pb.UserRespons
 	user, err := UsersGrpc.client.GetUserByRefreshToken(context.Background(), &pb.GetUserByTokenRequest{Token: token})
 
 	if err != nil || user == nil {
-		return user, fmt.Errorf("Error when getting user: %v", err)
+		return user, fmt.Errorf("error when getting user: %v", err)
 	}
 
 	return user, nil
@@ -85,26 +86,27 @@ func (UsersGrpc *UsersGrpc) GetUserByRefreshToken(token string) (*pb.UserRespons
 
 func (UsersGrpc *MockUsersGrpc) GetUserByRefreshToken(token string) (*pb.UserResponse, error) {
 	return &pb.UserResponse{
-		Id:             1,
-		Username:       "testuser",
-		Phone:          "testphone",
-		Email:          "testemail",
-		FirstName:      "testfirstname",
-		LastName:       "testlastname",
-		MiddleName:     "testmiddlename",
-		Activity:       "testactivity",
-		Status:         "teststatus",
-		EmailConfirmed: true,
-		PhoneConfirmed: true,
-		LastSeen:       "2023-01-01T20:00:00Z",
-		AvatarUrl:      "testurl",
+		Id:                 1,
+		Username:           "testuser",
+		Phone:              "testphone",
+		Email:              "testemail",
+		FirstName:          "testfirstname",
+		LastName:           "testlastname",
+		MiddleName:         "testmiddlename",
+		Activity:           "testactivity",
+		Status:             "teststatus",
+		EmailConfirmed:     true,
+		PhoneConfirmed:     true,
+		LastSeen:           "2023-01-01T20:00:00Z",
+		OriginalAvatarUrl:  "testurl",
+		ConvertedAvatarUrl: "testurl",
 	}, nil
 }
 
 func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 	user, err := usersGrpc.client.GetUserById(context.Background(), &pb.GetUserByIdRequest{Id: int32(id)})
 	if err != nil || user == nil {
-		return user, fmt.Errorf("Error when getting user: %v", err)
+		return user, fmt.Errorf("error when getting user: %v", err)
 	}
 
 	return user, nil
@@ -112,19 +114,20 @@ func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 
 func (usersGrpc *MockUsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 	return &pb.UserResponse{
-		Id:             1,
-		Username:       "testuser",
-		Phone:          "testphone",
-		Email:          "testemail",
-		FirstName:      "testfirstname",
-		LastName:       "testlastname",
-		MiddleName:     "testmiddlename",
-		Activity:       "testactivity",
-		Status:         "teststatus",
-		EmailConfirmed: true,
-		PhoneConfirmed: true,
-		LastSeen:       "2023-01-01T20:00:00Z",
-		AvatarUrl:      "testurl",
+		Id:                 1,
+		Username:           "testuser",
+		Phone:              "testphone",
+		Email:              "testemail",
+		FirstName:          "testfirstname",
+		LastName:           "testlastname",
+		MiddleName:         "testmiddlename",
+		Activity:           "testactivity",
+		Status:             "teststatus",
+		EmailConfirmed:     true,
+		PhoneConfirmed:     true,
+		LastSeen:           "2023-01-01T20:00:00Z",
+		OriginalAvatarUrl:  "testurl",
+		ConvertedAvatarUrl: "testurl",
 	}, nil
 }
 
