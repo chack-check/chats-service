@@ -10,3 +10,7 @@ spec:
       port: 8000
       targetPort: 8000
       name: web
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+      name: grpc

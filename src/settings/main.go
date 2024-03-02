@@ -7,24 +7,26 @@ import (
 )
 
 type BaseSettings struct {
-	PORT                         int
-	USERS_GRPC_HOST              string
-	USERS_GRPC_PORT              int
-	APP_RABBIT_USER              string
-	APP_RABBIT_PASSWORD          string
-	APP_RABBIT_HOST              string
-	APP_RABBIT_PORT              int
-	APP_RABBIT_EVENTS_QUEUE_NAME string
-	APP_DATABASE_HOST            string
-	APP_DATABASE_PORT            int
-	APP_DATABASE_USER            string
-	APP_DATABASE_PASSWORD        string
-	APP_DATABASE_NAME            string
-	APP_ALLOW_ORIGINS            string
-	APP_ENVIRONMENT              string
-	SECRET_KEY                   string
-	BASE_DIR                     string
-	TEST_DATA_DIR                string
+	PORT                               int
+	GRPC_SERVER_HOST                   string
+	GRPC_SERVER_PORT                   int
+	USERS_GRPC_HOST                    string
+	USERS_GRPC_PORT                    int
+	APP_RABBIT_USER                    string
+	APP_RABBIT_PASSWORD                string
+	APP_RABBIT_HOST                    string
+	APP_RABBIT_PORT                    int
+	APP_RABBIT_PUBLISHER_EXCHANGE_NAME string
+	APP_DATABASE_HOST                  string
+	APP_DATABASE_PORT                  int
+	APP_DATABASE_USER                  string
+	APP_DATABASE_PASSWORD              string
+	APP_DATABASE_NAME                  string
+	APP_ALLOW_ORIGINS                  string
+	APP_ENVIRONMENT                    string
+	SECRET_KEY                         string
+	BASE_DIR                           string
+	TEST_DATA_DIR                      string
 }
 
 var Settings *BaseSettings = NewSettings()
@@ -37,6 +39,16 @@ func NewSettings() *BaseSettings {
 
 	environment := os.Getenv("APP_ENVIRONMENT")
 	log.Printf("Parsed APP_ENVIRONMENT value: %s", environment)
+
+	grpc_server_host := os.Getenv("GRPC_SERVER_HOST")
+	if grpc_server_host == "" {
+		panic("You need to specify GRPC_SERVER_HOST environment variable")
+	}
+
+	grpc_server_port, err := strconv.Atoi(os.Getenv("GRPC_SERVER_PORT"))
+	if err != nil {
+		panic("You need to specify GRPC_SERVER_PORT environment variable")
+	}
 
 	rabbit_user := os.Getenv("APP_RABBIT_USER")
 	if rabbit_user == "" && environment != "test" {
@@ -58,9 +70,9 @@ func NewSettings() *BaseSettings {
 		panic("You need to specify rabbit port")
 	}
 
-	rabbit_queue_name := os.Getenv("APP_RABBIT_EVENTS_QUEUE_NAME")
-	if rabbit_queue_name == "" && environment != "test" {
-		panic("You need to specify rabbit events queue  name")
+	rabbit_exchange_name := os.Getenv("APP_RABBIT_PUBLISHER_EXCHANGE_NAME")
+	if rabbit_exchange_name == "" && environment != "test" {
+		panic("You need to specify rabbit publisher exchange name")
 	}
 
 	users_grpc_host := os.Getenv("USERS_GRPC_HOST")
@@ -109,21 +121,23 @@ func NewSettings() *BaseSettings {
 	}
 
 	return &BaseSettings{
-		PORT:                         port,
-		USERS_GRPC_HOST:              users_grpc_host,
-		USERS_GRPC_PORT:              users_grpc_port,
-		APP_RABBIT_HOST:              rabbit_host,
-		APP_RABBIT_PORT:              rabbit_port,
-		APP_RABBIT_USER:              rabbit_user,
-		APP_RABBIT_PASSWORD:          rabbit_password,
-		APP_RABBIT_EVENTS_QUEUE_NAME: rabbit_queue_name,
-		APP_DATABASE_HOST:            db_host,
-		APP_DATABASE_PORT:            db_port,
-		APP_DATABASE_USER:            db_user,
-		APP_DATABASE_PASSWORD:        db_password,
-		APP_DATABASE_NAME:            db_name,
-		APP_ALLOW_ORIGINS:            allowOrigins,
-		APP_ENVIRONMENT:              environment,
-		SECRET_KEY:                   secretKey,
+		PORT:                               port,
+		USERS_GRPC_HOST:                    users_grpc_host,
+		USERS_GRPC_PORT:                    users_grpc_port,
+		GRPC_SERVER_HOST:                   grpc_server_host,
+		GRPC_SERVER_PORT:                   grpc_server_port,
+		APP_RABBIT_HOST:                    rabbit_host,
+		APP_RABBIT_PORT:                    rabbit_port,
+		APP_RABBIT_USER:                    rabbit_user,
+		APP_RABBIT_PASSWORD:                rabbit_password,
+		APP_RABBIT_PUBLISHER_EXCHANGE_NAME: rabbit_exchange_name,
+		APP_DATABASE_HOST:                  db_host,
+		APP_DATABASE_PORT:                  db_port,
+		APP_DATABASE_USER:                  db_user,
+		APP_DATABASE_PASSWORD:              db_password,
+		APP_DATABASE_NAME:                  db_name,
+		APP_ALLOW_ORIGINS:                  allowOrigins,
+		APP_ENVIRONMENT:                    environment,
+		SECRET_KEY:                         secretKey,
 	}
 }

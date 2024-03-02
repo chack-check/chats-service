@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"log"
+	"slices"
 
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/schemas"
@@ -65,6 +66,48 @@ func setupUserChatData(chat *models.Chat, currentUserId int) {
 	}
 }
 
+func setupUserManyChatsData(chats []*models.Chat, currentUserId int) {
+	var anotherUsersIds []int
+	for _, chat := range chats {
+		if chat.Type != "user" {
+			continue
+		}
+
+		for _, member := range chat.Members {
+			if member != int64(currentUserId) && !slices.Contains(anotherUsersIds, int(member)) {
+				anotherUsersIds = append(anotherUsersIds, int(member))
+			}
+		}
+	}
+
+	anotherUsers, err := grpc_client.UsersGrpcClient.GetUsersByIds(anotherUsersIds)
+	if err != nil {
+		return
+	}
+
+	for _, chat := range chats {
+		if chat.Type != "user" {
+			continue
+		}
+
+		var anotherUser *protousers.UserResponse
+
+		for _, member := range chat.Members {
+			if member == int64(currentUserId) {
+				continue
+			}
+
+			for _, user := range anotherUsers.Users {
+				if user.Id == int32(member) {
+					anotherUser = user
+				}
+			}
+		}
+
+		setupChatTitleAndAvatar(chat, anotherUser)
+	}
+}
+
 type ChatsManager struct {
 	ChatsQueries *models.ChatsQueries
 }
@@ -88,6 +131,22 @@ func (manager *ChatsManager) GetConcrete(chatID uint, token *jwt.Token) (*models
 	return chat, nil
 }
 
+func (manager *ChatsManager) GetByIds(chatsIds []int, token *jwt.Token) ([]*models.Chat, error) {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	chats, err := manager.ChatsQueries.GetByIds(chatsIds, tokenSubject.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	setupUserManyChatsData(chats, tokenSubject.UserId)
+
+	return chats, nil
+}
+
 func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *schemas.PaginatedResponse[*models.Chat] {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
@@ -97,11 +156,8 @@ func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *sc
 	count := manager.ChatsQueries.GetAllWithMemberCount(uint(tokenSubject.UserId))
 	countValue := *count
 	chats := manager.ChatsQueries.GetAllWithMember(uint(tokenSubject.UserId), page, perPage)
-	for _, chat := range chats {
-		if chat.Type == "user" {
-			setupUserChatData(chat, tokenSubject.UserId)
-		}
-	}
+
+	setupUserManyChatsData(chats, tokenSubject.UserId)
 
 	paginatedResponse := schemas.NewPaginatedResponse(page, perPage, int(countValue), chats)
 	return &paginatedResponse
@@ -178,11 +234,8 @@ func (manager *ChatsManager) Search(query string, token *jwt.Token, page int, pe
 
 	chatsCount := manager.ChatsQueries.SearchCount(uint(tokenSubject.UserId), query, page, perPage)
 	chats := manager.ChatsQueries.Search(uint(tokenSubject.UserId), query, page, perPage)
-	for _, chat := range chats {
-		if chat.Type == "user" {
-			setupUserChatData(chat, tokenSubject.UserId)
-		}
-	}
+
+	setupUserManyChatsData(chats, tokenSubject.UserId)
 
 	response := schemas.NewPaginatedResponse(page, perPage, int(chatsCount), chats)
 	return &response, nil

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 	"slices"
 
 	"github.com/chack-check/chats-service/database"
@@ -31,6 +32,32 @@ type GetAllInChatCountParams struct {
 
 type MessagesQueries struct{}
 
+func (queries *MessagesQueries) GetConcreteById(messageId int, userId int) (*Message, error) {
+	var message Message
+
+	database.DB.Where(
+		"(deleted_for IS NULL OR NOT ? = ANY(deleted_for)) AND id = ?", userId, messageId,
+	).First(&message)
+
+	if message.ID == 0 {
+		return nil, fmt.Errorf("Message with this id doesn't exist")
+	}
+
+	return &message, nil
+}
+
+func (queries *MessagesQueries) GetByIds(messageIds []int, userId int) ([]*Message, error) {
+	var messages []*Message
+
+	log.Printf("Getting messages with ids %v and for user id %d", messageIds, userId)
+
+	database.DB.Where(
+		"(deleted_for IS NULL OR NOT ? = ANY(deleted_for)) AND id IN ?", userId, messageIds,
+	).Find(&messages)
+
+	return messages, nil
+}
+
 func (queries *MessagesQueries) GetConcrete(params GetConcreteMessageParams) (*Message, error) {
 	var message Message
 
@@ -43,7 +70,7 @@ func (queries *MessagesQueries) GetConcrete(params GetConcreteMessageParams) (*M
 	}
 
 	if message.ID == 0 {
-		return &Message{}, fmt.Errorf("Chat with this ID doesn't exist")
+		return &Message{}, fmt.Errorf("Message with this ID doesn't exist")
 	}
 
 	return &message, nil

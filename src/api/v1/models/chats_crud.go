@@ -29,6 +29,18 @@ func (queries *ChatsQueries) GetConcrete(userId uint, id uint) (*Chat, error) {
 	return &chat, nil
 }
 
+func (queries *ChatsQueries) GetByIds(chatIds []int, userId int) ([]*Chat, error) {
+	var chats []*Chat
+
+	log.Printf("Getting chats with ids %v and for user id %d", chatIds, userId)
+
+	database.DB.Where(
+		"? = ANY(members) AND id IN ?", userId, chatIds,
+	).Find(&chats)
+
+	return chats, nil
+}
+
 func (queries *ChatsQueries) GetWithMember(chatId uint, userId uint) (*Chat, error) {
 	var chat Chat
 	database.DB.Where("? = ANY(members) AND id = ?", userId, chatId).First(&chat)

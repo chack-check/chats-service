@@ -16,6 +16,7 @@ type IUsersGrpc interface {
 	GetUserByToken(token string) (*pb.UserResponse, error)
 	GetUserByRefreshToken(token string) (*pb.UserResponse, error)
 	GetUserById(id int) (*pb.UserResponse, error)
+	GetUsersByIds(ids []int) (*pb.UsersArrayResponse, error)
 }
 
 type UsersGrpc struct {
@@ -112,6 +113,20 @@ func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 	return user, nil
 }
 
+func (usersGrpc *UsersGrpc) GetUsersByIds(ids []int) (*pb.UsersArrayResponse, error) {
+	var ids_int32 []int32
+	for _, id := range ids {
+		ids_int32 = append(ids_int32, int32(id))
+	}
+
+	users_response, err := usersGrpc.client.GetUsersByIds(context.Background(), &pb.GetUsersByIdsRequest{Ids: ids_int32})
+	if err != nil {
+		return nil, err
+	}
+
+	return users_response, nil
+}
+
 func (usersGrpc *MockUsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 	return &pb.UserResponse{
 		Id:                 1,
@@ -128,6 +143,29 @@ func (usersGrpc *MockUsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 		LastSeen:           "2023-01-01T20:00:00Z",
 		OriginalAvatarUrl:  "testurl",
 		ConvertedAvatarUrl: "testurl",
+	}, nil
+}
+
+func (usersGrpc *MockUsersGrpc) GetUsersByIds(ids []int) (*pb.UsersArrayResponse, error) {
+	var users_array []*pb.UserResponse
+	users_array = append(users_array, &pb.UserResponse{
+		Id:                 1,
+		Username:           "testuser",
+		Phone:              "testphone",
+		Email:              "testemail",
+		FirstName:          "testfirstname",
+		LastName:           "testlastname",
+		MiddleName:         "testmiddlename",
+		Activity:           "testactivity",
+		Status:             "teststatus",
+		EmailConfirmed:     true,
+		PhoneConfirmed:     true,
+		LastSeen:           "2023-01-01T20:00:00Z",
+		OriginalAvatarUrl:  "testurl",
+		ConvertedAvatarUrl: "testurl",
+	})
+	return &pb.UsersArrayResponse{
+		Users: users_array,
 	}, nil
 }
 

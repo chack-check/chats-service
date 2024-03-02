@@ -57,7 +57,7 @@ type ReadMessageEvent struct {
 
 type IRabbitConnection interface {
 	Connect()
-	DeclareQueue(queueName string)
+	DeclareExchange()
 	SendEvent(event interface{}) error
 	Close()
 }
@@ -65,13 +65,13 @@ type IRabbitConnection interface {
 type MockRabbitConnection struct{}
 
 type RabbitConnection struct {
-	User       string
-	Pass       string
-	Host       string
-	Port       string
-	Connection *amqp.Connection
-	Channel    *amqp.Channel
-	Queue      amqp.Queue
+	User         string
+	Pass         string
+	Host         string
+	Port         string
+	ExchangeName string
+	Connection   *amqp.Connection
+	Channel      *amqp.Channel
 }
 
 func (conn *RabbitConnection) Connect() {
@@ -89,21 +89,21 @@ func (conn *MockRabbitConnection) Connect() {
 	log.Print("Connect to rabbitmq")
 }
 
-func (conn *RabbitConnection) DeclareQueue(queueName string) {
-	queue, err := conn.Channel.QueueDeclare(
-		queueName,
-		false,
+func (conn *RabbitConnection) DeclareExchange() {
+	err := conn.Channel.ExchangeDeclare(
+		conn.ExchangeName,
+		"fanout",
+		true,
 		false,
 		false,
 		false,
 		nil,
 	)
-	failOnError(err, "Failed to declare a queue")
-	conn.Queue = queue
+	failOnError(err, "Failed to declare an exchange")
 }
 
-func (conn *MockRabbitConnection) DeclareQueue(queueName string) {
-	log.Printf("Declaring queue %s", queueName)
+func (conn *MockRabbitConnection) DeclareExchange() {
+	log.Printf("Declaring exchange %s", "test")
 }
 
 func (conn *RabbitConnection) SendEvent(event interface{}) error {
@@ -112,7 +112,7 @@ func (conn *RabbitConnection) SendEvent(event interface{}) error {
 		return err
 	}
 
-	fmt.Printf("Sending message to queue: %v\n", event)
+	log.Printf("Sending message to queue: %v\n", event)
 
 	if conn.Connection.IsClosed() {
 		conn.Connect()
@@ -120,11 +120,11 @@ func (conn *RabbitConnection) SendEvent(event interface{}) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	log.Printf("Sending content to rabbitmq: %s, queue name: %s, closed: %v", body, conn.Queue.Name, conn.Connection.IsClosed())
+	log.Printf("Sending content to rabbitmq: %s, exchange name: %s, closed: %v", body, conn.ExchangeName, conn.Connection.IsClosed())
 	return conn.Channel.PublishWithContext(
 		ctx,
+		conn.ExchangeName,
 		"",
-		conn.Queue.Name,
 		false,
 		false,
 		amqp.Publishing{
@@ -148,7 +148,7 @@ func (conn *MockRabbitConnection) Close() {
 	log.Print("Closed rabbitmq connection")
 }
 
-func NewEventsRabbitConnection() IRabbitConnection {
+func NewEventsRabbitConnection(user string, pass string, host string, port int, exchangeName string) IRabbitConnection {
 	log.Print(settings.Settings.APP_ENVIRONMENT)
 	if settings.Settings.APP_ENVIRONMENT == "test" {
 		conn := &MockRabbitConnection{}
@@ -156,14 +156,21 @@ func NewEventsRabbitConnection() IRabbitConnection {
 	}
 
 	conn := &RabbitConnection{
-		User: settings.Settings.APP_RABBIT_USER,
-		Pass: settings.Settings.APP_RABBIT_PASSWORD,
-		Host: settings.Settings.APP_RABBIT_HOST,
-		Port: fmt.Sprint(settings.Settings.APP_RABBIT_PORT),
+		User:         user,
+		Pass:         pass,
+		Host:         host,
+		Port:         fmt.Sprint(port),
+		ExchangeName: exchangeName,
 	}
 	conn.Connect()
-	conn.DeclareQueue(settings.Settings.APP_RABBIT_EVENTS_QUEUE_NAME)
+	conn.DeclareExchange()
 	return conn
 }
 
-var EventsRabbitConnection IRabbitConnection = NewEventsRabbitConnection()
+var EventsRabbitConnection IRabbitConnection = NewEventsRabbitConnection(
+	settings.Settings.APP_RABBIT_USER,
+	settings.Settings.APP_RABBIT_PASSWORD,
+	settings.Settings.APP_RABBIT_HOST,
+	settings.Settings.APP_RABBIT_PORT,
+	settings.Settings.APP_RABBIT_PUBLISHER_EXCHANGE_NAME,
+)

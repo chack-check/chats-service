@@ -88,6 +88,34 @@ type MessagesManager struct {
 	ChatsQueries    *models.ChatsQueries
 }
 
+func (manager *MessagesManager) GetConcrete(messageId int, token *jwt.Token) (*models.Message, error) {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	message, err := manager.MessagesQueries.GetConcreteById(messageId, tokenSubject.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	return message, nil
+}
+
+func (manager *MessagesManager) GetByIds(messageIds []int, token *jwt.Token) ([]*models.Message, error) {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	messages, err := manager.MessagesQueries.GetByIds(messageIds, tokenSubject.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	return messages, nil
+}
+
 func (manager *MessagesManager) GetChatAll(token *jwt.Token, chatId uint, page int, perPage int) (*schemas.PaginatedResponse[models.Message], error) {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {

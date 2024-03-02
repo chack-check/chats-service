@@ -16,6 +16,14 @@ type TokenSubject struct {
 	Username string `json:"username"`
 }
 
+func GetTokenFromString(tokenString string) (*jwt.Token, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(settings.Settings.SECRET_KEY), nil
+	})
+
+	return token, err
+}
+
 func UserMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header["Authorization"]
@@ -24,9 +32,7 @@ func UserMiddleware(next http.Handler) http.Handler {
 		if len(authorization) != 0 {
 			tokenString := strings.Replace(r.Header["Authorization"][0], "Bearer ", "", 1)
 			log.Printf("Parsing token: %s", tokenString)
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-				return []byte(settings.Settings.SECRET_KEY), nil
-			})
+			token, err := GetTokenFromString(tokenString)
 			if err == nil && token.Valid {
 				log.Printf("Successfully parsd token: %v", token)
 				ctx = context.WithValue(r.Context(), "token", token)
@@ -44,17 +50,17 @@ func UserMiddleware(next http.Handler) http.Handler {
 func GetTokenSubject(token *jwt.Token) (TokenSubject, error) {
 	tokenSubject := TokenSubject{}
 
-    subject, err := token.Claims.GetSubject()
-    if err != nil {
-        log.Printf("Error parsing token subject: %v", token)
-        return tokenSubject, err
-    }
+	subject, err := token.Claims.GetSubject()
+	if err != nil {
+		log.Printf("Error parsing token subject: %v", token)
+		return tokenSubject, err
+	}
 
-    err = json.Unmarshal([]byte(subject), &tokenSubject)
-    if err != nil {
-        log.Printf("Error parsing token subject: %v", token)
-        return tokenSubject, err
-    }
+	err = json.Unmarshal([]byte(subject), &tokenSubject)
+	if err != nil {
+		log.Printf("Error parsing token subject: %v", token)
+		return tokenSubject, err
+	}
 
 	log.Printf("Parsed token subject: %v", tokenSubject)
 
