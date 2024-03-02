@@ -64,8 +64,8 @@ spec:
               value: chats_exchange
             - name: GRPC_SERVER_HOST
               value: "0.0.0.0"
-            - nam: GRPC_SERVER_PORT
-              value: 9090
+            - name: GRPC_SERVER_PORT
+              value: "9090"
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
