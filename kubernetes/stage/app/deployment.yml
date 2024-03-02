@@ -21,6 +21,8 @@ spec:
           ports:
             - containerPort: 8000
               name: web
+            - containerPort: 9090
+              name: grc
           env:
             - name: USERS_GRPC_HOST
               value: "chack-users-service"
