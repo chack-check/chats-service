@@ -62,10 +62,10 @@ func (queries *MessagesQueries) GetConcrete(params GetConcreteMessageParams) (*M
 	var message Message
 
 	if params.WithDeleted {
-		database.DB.Where("chat_id = ? AND id = ?", params.ChatId, params.MessageId).First(&message)
+		database.DB.Preload("Reactions").Where("chat_id = ? AND id = ?", params.ChatId, params.MessageId).First(&message)
 	} else {
-		database.DB.Where(
-			"chat_id = ? AND NOT ? = ANY(deleted_for) AND id = ?", params.ChatId, params.UserId, params.MessageId,
+		database.DB.Preload("Reactions").Where(
+			"chat_id = ? AND (deleted_for IS NULL OR NOT ? = ANY(deleted_for)) AND id = ?", params.ChatId, params.UserId, params.MessageId,
 		).First(&message)
 	}
 
@@ -106,7 +106,7 @@ func (queries *MessagesQueries) GetAllInChat(params GetAllInChatParams) *[]Messa
 		database.DB.Scopes(Paginate(params.Page, params.PerPage)).Preload(
 			"Reactions",
 		).Where(
-			"chat_id = ? AND NOT ? = ANY(deleted_for)", params.ChatId, params.UserId,
+			"chat_id = ? AND (deleted_for IS NULL OR NOT ? = ANY(deleted_for))", params.ChatId, params.UserId,
 		).Order(
 			"created_at DESC",
 		).Find(&messages)
@@ -121,7 +121,7 @@ func (queries *MessagesQueries) GetAllInChatCount(params GetAllInChatCountParams
 	if params.WithDeleted {
 		database.DB.Model(&Message{}).Where("chat_id = ?", params.ChatId).Count(&count)
 	} else {
-		database.DB.Model(&Message{}).Where("chat_id = ? AND NOT ? = ANY(deleted_for)", params.ChatId, params.UserId).Count(&count)
+		database.DB.Model(&Message{}).Where("chat_id = ? AND (deleted_for IS NULL OR NOT ? = ANY(deleted_for))", params.ChatId, params.UserId).Count(&count)
 	}
 
 	return count

@@ -205,14 +205,23 @@ func (manager *ChatsManager) createUserChat(chat *models.Chat, currentUser *prot
 	return nil
 }
 
-func (manager *ChatsManager) sendChatEvent(chat *models.Chat) error {
-	chatEvent := getChatEventFromChat(chat)
-	err := rabbit.EventsRabbitConnection.SendEvent(chatEvent)
-	log.Printf("Sended chat to rabbitmq")
+func (manager *ChatsManager) sendChatCreatedEvent(chat *models.Chat) error {
+	var included_users []int
+	for _, user := range chat.Members {
+		included_users = append(included_users, int(user))
+	}
+
+	chatEvent, err := rabbit.NewSystemEvent("chat_created", included_users, chat)
+	if err != nil {
+		return err
+	}
+
+	err = rabbit.EventsRabbitConnection.SendEvent(chatEvent)
+	log.Printf("Sended chat created event to rabbitmq")
 
 	if err != nil {
-		log.Printf("Error when publishing chat event in queue: %v", err)
-		return fmt.Errorf("error sending chat event")
+		log.Printf("Error when publishing chat created event in queue: %v", err)
+		return fmt.Errorf("error sending chat created event")
 	}
 
 	return nil
@@ -253,7 +262,7 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 			return err
 		}
 
-		manager.sendChatEvent(chat)
+		manager.sendChatCreatedEvent(chat)
 		return nil
 	}
 
@@ -264,7 +273,7 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 	members := pq.Int32Array{int32(tokenSubject.UserId), int32(chatUserId)}
 	if chatId := manager.ChatsQueries.GetDeletedChatId(members); chatId > 0 {
 		manager.ChatsQueries.RestoreChat(chatId)
-		if err := manager.sendChatEvent(chat); err != nil {
+		if err := manager.sendChatCreatedEvent(chat); err != nil {
 			return err
 		}
 
@@ -289,7 +298,7 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 		return err
 	}
 
-	manager.sendChatEvent(chat)
+	manager.sendChatCreatedEvent(chat)
 	return nil
 }
 

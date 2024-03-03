@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"slices"
-	"time"
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/models"
@@ -21,67 +20,6 @@ const (
 	DeleteForMe  DeleteForOptions = "me"
 	DeleteForAll DeleteForOptions = "all"
 )
-
-func getMessageEventFromMessage(message *models.Message, chat *models.Chat) *rabbit.MessageEvent {
-	members := []int{}
-	attachments := []string{}
-	mentioned := []int{}
-	readedBy := []int{}
-
-	for _, member := range chat.Members {
-		members = append(members, int(member))
-	}
-
-	for _, attachment := range message.Attachments {
-		attachments = append(attachments, string(attachment))
-	}
-
-	for _, ment := range message.Mentioned {
-		mentioned = append(mentioned, int(ment))
-	}
-
-	for _, reader := range message.ReadedBy {
-		readedBy = append(readedBy, int(reader))
-	}
-
-	return &rabbit.MessageEvent{
-		Type:          "message",
-		MessageId:     int(message.ID),
-		IncludedUsers: members,
-		ChatID:        int(message.ChatId),
-		SenderID:      int(message.SenderId),
-		MessageType:   message.Type,
-		Content:       message.Content,
-		VoiceURL:      message.VoiceURL,
-		CircleURL:     message.CircleURL,
-		Attachments:   attachments,
-		ReplyToID:     int(message.ReplyToID),
-		Mentioned:     mentioned,
-		ReadedBy:      readedBy,
-		Datetime:      message.CreatedAt.UTC().Format(time.RFC3339),
-	}
-}
-
-func getReadMessageEventFromMessage(message *models.Message, chat *models.Chat) *rabbit.ReadMessageEvent {
-	members := []int{}
-	readedBy := []int{}
-
-	for _, member := range chat.Members {
-		members = append(members, int(member))
-	}
-
-	for _, reader := range message.ReadedBy {
-		readedBy = append(readedBy, int(reader))
-	}
-
-	return &rabbit.ReadMessageEvent{
-		Type:          "message_readed",
-		MessageId:     int(message.ID),
-		ChatID:        int(message.ChatId),
-		ReadedBy:      readedBy,
-		IncludedUsers: members,
-	}
-}
 
 type MessagesManager struct {
 	MessagesQueries *models.MessagesQueries
@@ -218,12 +156,16 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 		return nil, err
 	}
 
-	sendingIds32 := []int32{}
-	for _, v := range chat.Members {
-		sendingIds32 = append(sendingIds32, int32(v))
+	var includedUsers []int
+	for _, member := range chat.Members {
+		includedUsers = append(includedUsers, int(member))
 	}
 
-	messageEvent := getMessageEventFromMessage(message, chat)
+	messageEvent, err := rabbit.NewSystemEvent("message_created", includedUsers, message)
+	if err != nil {
+		return nil, err
+	}
+
 	err = rabbit.EventsRabbitConnection.SendEvent(messageEvent)
 	log.Printf("Sended message to rabbitmq")
 
@@ -247,7 +189,16 @@ func (manager *MessagesManager) Read(chat *models.Chat, messageId uint, token *j
 
 	manager.MessagesQueries.Read(message, uint(tokenSubject.UserId))
 
-	readMessageEvent := getReadMessageEventFromMessage(message, chat)
+	var included_users []int
+	for _, user := range chat.Members {
+		included_users = append(included_users, int(user))
+	}
+
+	readMessageEvent, err := rabbit.NewSystemEvent("message_readed", included_users, message)
+	if err != nil {
+		return nil, err
+	}
+
 	err = rabbit.EventsRabbitConnection.SendEvent(readMessageEvent)
 
 	if err != nil {
@@ -265,12 +216,35 @@ func (manager *MessagesManager) ReactMessage(token *jwt.Token, chatId uint, mess
 		return nil, err
 	}
 
+	chat, err := manager.ChatsQueries.GetWithMember(uint(chatId), uint(tokenSubject.UserId))
+	if err != nil {
+		return nil, err
+	}
+
 	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chatId, MessageId: messageId, UserId: uint(tokenSubject.UserId)})
 	if err != nil {
 		return &models.Message{}, err
 	}
 
 	manager.MessagesQueries.AddReaction(uint(tokenSubject.UserId), content, message)
+
+	var included_users []int
+	for _, user := range chat.Members {
+		included_users = append(included_users, int(user))
+	}
+
+	reactMessageEvent, err := rabbit.NewSystemEvent("message_reacted", included_users, message)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rabbit.EventsRabbitConnection.SendEvent(reactMessageEvent)
+
+	if err != nil {
+		log.Printf("Error when publishing message reacted event in queue: %v", err)
+	}
+
+	log.Printf("Sended message reacted event to rabbitmq")
 
 	return message, nil
 }
@@ -296,7 +270,7 @@ func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, mes
 	}
 
 	if !manager.validateCanUserDeleteMessage(uint(tokenSubject.UserId), chat, message) {
-		return fmt.Errorf("The user with id %d can't delete message with id %d", tokenSubject.UserId, messageId)
+		return fmt.Errorf("the user with id %d can't delete message with id %d", tokenSubject.UserId, messageId)
 	}
 
 	deleteForArray := []int32{}

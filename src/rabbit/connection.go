@@ -19,18 +19,18 @@ func failOnError(err error, msg string) {
 
 type MessageEvent struct {
 	Type          string   `json:"type"`
-	MessageId     int      `json:"messageId"`
-	IncludedUsers []int    `json:"includedUsers"`
-	ChatID        int      `json:"chatId"`
-	SenderID      int      `json:"senderId"`
-	MessageType   string   `json:"messageType"`
+	MessageId     int      `json:"message_id"`
+	IncludedUsers []int    `json:"included_users"`
+	ChatID        int      `json:"chat_id"`
+	SenderID      int      `json:"sender_id"`
+	MessageType   string   `json:"message_type"`
 	Content       string   `json:"content"`
-	VoiceURL      string   `json:"voiceUrl"`
-	CircleURL     string   `json:"circleUrl"`
+	VoiceURL      string   `json:"voice_url"`
+	CircleURL     string   `json:"circle_url"`
 	Attachments   []string `json:"attachments"`
-	ReplyToID     int      `json:"replyToId"`
+	ReplyToID     int      `json:"reply_to_id"`
 	Mentioned     []int    `json:"mentioned"`
-	ReadedBy      []int    `json:"readedBy"`
+	ReadedBy      []int    `json:"readed_by"`
 	Datetime      string   `json:"datetime"`
 }
 
