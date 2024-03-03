@@ -126,6 +126,7 @@ type Query {
 	getChat(chatId: Int!): Chat!
   getChatAttachments(chatId: Int!, fileType: FileType!): FileObjectResponse!
 	searchMessages(query: String, chatId: Int, page: Int, perPage: Int): PaginatedMessages!
+  getLastMessagesForChats(chatIds: [Int!]): [Message!]
 }
 
 type Mutation {

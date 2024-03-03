@@ -320,6 +320,33 @@ func (r *queryResolver) SearchMessages(ctx context.Context, query *string, chatI
 	}, nil
 }
 
+// GetLastMessagesForChats is the resolver for the getLastMessagesForChats field.
+func (r *queryResolver) GetLastMessagesForChats(ctx context.Context, chatIds []int) ([]*model.Message, error) {
+	if len(chatIds) > 100 {
+		return nil, fmt.Errorf("max fetching chats is 100")
+	}
+
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return nil, err
+	}
+	token_subject, err := services.GetTokenSubject(token)
+	if err != nil {
+		return nil, err
+	}
+
+	messages_service := services.NewMessagesManager()
+	messages := messages_service.GetLastByChatIds(chatIds, token_subject.UserId)
+
+	var messages_schemas []*model.Message
+	for _, message := range messages {
+		message_schema := utils.DbMessageToSchema(*message)
+		messages_schemas = append(messages_schemas, &message_schema)
+	}
+
+	return messages_schemas, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

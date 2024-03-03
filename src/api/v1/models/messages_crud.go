@@ -163,6 +163,27 @@ func (queries *MessagesQueries) AddReaction(userId uint, content string, message
 	message.Reactions = append(message.Reactions, newReaction)
 }
 
+func (queries *MessagesQueries) GetLastForChatId(chatId int, userId int) *Message {
+	var message Message
+	database.DB.Model(
+		&Message{},
+	).Joins(
+		"JOIN chats ON chats.id = messages.chat_id",
+	).Where(
+		"messages.chat_id = ? AND ? = ANY(chats.members)", chatId, userId,
+	).Order(
+		"messages.created_at DESC",
+	).Limit(1).Find(&message)
+
+	log.Printf("Received last messages for chat id: %d; and user id: %d. Last message: %v", chatId, userId, message)
+
+	if message.ID != 0 {
+		return &message
+	}
+
+	return nil
+}
+
 func (queries *MessagesQueries) Update(message *Message) {
 	database.DB.Save(message)
 }

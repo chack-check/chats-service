@@ -340,6 +340,19 @@ func (manager *MessagesManager) Update(chat *models.Chat, messageId uint, update
 	return message, nil
 }
 
+func (manager *MessagesManager) GetLastByChatIds(chatIds []int, userId int) []*models.Message {
+	var last_messages []*models.Message
+
+	for _, chat_id := range chatIds {
+		message := manager.MessagesQueries.GetLastForChatId(chat_id, userId)
+		if message != nil {
+			last_messages = append(last_messages, message)
+		}
+	}
+
+	return last_messages
+}
+
 func NewMessagesManager() *MessagesManager {
 	return &MessagesManager{
 		MessagesQueries: &models.MessagesQueries{},
