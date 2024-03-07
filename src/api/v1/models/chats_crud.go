@@ -53,7 +53,14 @@ func (queries *ChatsQueries) GetWithMember(chatId uint, userId uint) (*Chat, err
 func (queries *ChatsQueries) GetAllWithMember(userId uint, page int, perPage int) []*Chat {
 	var chats []*Chat
 
-	database.DB.Scopes(Paginate(page, perPage)).Where("? = ANY(members)", userId).Find(&chats)
+	database.DB.Scopes(
+		Paginate(page, perPage),
+	).Where(
+		"? = ANY(members)", userId,
+	).Order(
+		"(SELECT created_at FROM messages WHERE chat_id = chats.id ORDER BY created_at DESC LIMIT 1) DESC NULLS LAST",
+	).Find(&chats)
+
 	log.Printf("User chats count: %v", len(chats))
 	return chats
 }
