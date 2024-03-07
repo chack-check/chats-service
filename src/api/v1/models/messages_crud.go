@@ -148,9 +148,9 @@ func (queris *MessagesQueries) DeleteMessage(message *Message, deleteFor []int32
 	return nil
 }
 
-func (queries *MessagesQueries) AddReaction(userId uint, content string, message *Message) {
+func (queries *MessagesQueries) AddOrGetReaction(userId uint, content string, message *Message) bool {
 	if slices.IndexFunc(message.Reactions, func(r Reaction) bool { return r.UserId == userId }) >= 0 {
-		return
+		return false
 	}
 
 	newReaction := Reaction{
@@ -161,6 +161,11 @@ func (queries *MessagesQueries) AddReaction(userId uint, content string, message
 
 	database.DB.Create(&newReaction)
 	message.Reactions = append(message.Reactions, newReaction)
+	return true
+}
+
+func (queries *MessagesQueries) DeleteReaction(userId int, message *Message) {
+	database.DB.Delete(&Reaction{}, "message_id = ? AND user_id = ?", message.ID, userId)
 }
 
 func (queries *MessagesQueries) GetLastForChatId(chatId int, userId int) *Message {

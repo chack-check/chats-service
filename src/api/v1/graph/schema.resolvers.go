@@ -179,6 +179,20 @@ func (r *mutationResolver) DeleteChat(ctx context.Context, chatID int) (*bool, e
 	return &isDeleted, nil
 }
 
+// DeleteMessageReaction is the resolver for the deleteMessageReaction field.
+func (r *mutationResolver) DeleteMessageReaction(ctx context.Context, chatID int, messageID int) (*bool, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return nil, err
+	}
+
+	messagesManager := services.NewMessagesManager()
+	messagesManager.DeleteReaction(token, chatID, messageID)
+
+	var deleted bool = true
+	return &deleted, nil
+}
+
 // GetChatMessages is the resolver for the getChatMessages field.
 func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error) {
 	token, _ := ctx.Value("token").(*jwt.Token)

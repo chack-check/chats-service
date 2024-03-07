@@ -226,7 +226,10 @@ func (manager *MessagesManager) ReactMessage(token *jwt.Token, chatId uint, mess
 		return &models.Message{}, err
 	}
 
-	manager.MessagesQueries.AddReaction(uint(tokenSubject.UserId), content, message)
+	created := manager.MessagesQueries.AddOrGetReaction(uint(tokenSubject.UserId), content, message)
+	if !created {
+		return message, nil
+	}
 
 	var included_users []int
 	for _, user := range chat.Members {
@@ -284,6 +287,26 @@ func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, mes
 
 	err = manager.MessagesQueries.DeleteMessage(message, deleteForArray)
 	return err
+}
+
+func (manager *MessagesManager) DeleteReaction(token *jwt.Token, chatId int, messageId int) error {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return err
+	}
+
+	chat, err := manager.ChatsQueries.GetWithMember(uint(tokenSubject.UserId), uint(chatId))
+	if err != nil {
+		return err
+	}
+
+	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chat.ID, MessageId: uint(messageId), UserId: uint(tokenSubject.UserId)})
+	if err != nil {
+		return err
+	}
+
+	manager.MessagesQueries.DeleteReaction(tokenSubject.UserId, message)
+	return nil
 }
 
 func (manager *MessagesManager) Update(chat *models.Chat, messageId uint, updateData model.ChangeMessageRequest, token *jwt.Token) (*models.Message, error) {

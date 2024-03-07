@@ -140,6 +140,7 @@ type Mutation {
   reactMessage(chatId: Int!, messageId: Int!, content: String!): Message!
   deleteMessage(chatId: Int!, messageId: Int!, deleteFor: DeleteForOptions!): Boolean
   deleteChat(chatId: Int!): Boolean
+  deleteMessageReaction(chatId: Int!, messageId: Int!): Boolean
 }
 
 schema {

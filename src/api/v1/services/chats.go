@@ -23,32 +23,6 @@ func setupChatTitleAndAvatar(chat *models.Chat, chatUser *protousers.UserRespons
 	}
 }
 
-func getChatEventFromChat(chat *models.Chat) *rabbit.ChatEvent {
-	members := []int{}
-	admins := []int{}
-
-	for _, member := range chat.Members {
-		members = append(members, int(member))
-	}
-
-	for _, admin := range chat.Admins {
-		admins = append(admins, int(admin))
-	}
-
-	return &rabbit.ChatEvent{
-		Type:          "chat",
-		IncludedUsers: members,
-		ChatId:        int(chat.ID),
-		AvatarURL:     chat.AvatarURL,
-		Title:         chat.Title,
-		ChatType:      chat.Type,
-		Members:       members,
-		IsArchived:    chat.IsArchived,
-		OwnerID:       int(chat.OwnerId),
-		Admins:        admins,
-	}
-}
-
 func setupUserChatData(chat *models.Chat, currentUserId int) {
 	var anotherUserId int64
 	for _, member := range chat.Members {

@@ -85,16 +85,17 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddChatAdmins  func(childComplexity int, chatID int, admins []int) int
-		AddChatMembers func(childComplexity int, chatID int, members []int) int
-		CreateChat     func(childComplexity int, request model.CreateChatRequest) int
-		CreateMessage  func(childComplexity int, request model.CreateMessageRequest) int
-		DeleteChat     func(childComplexity int, chatID int) int
-		DeleteMessage  func(childComplexity int, chatID int, messageID int, deleteFor model.DeleteForOptions) int
-		EditChat       func(childComplexity int, chatID int, request model.EditChatRequest) int
-		EditMessage    func(childComplexity int, chatID int, messageID int, request model.ChangeMessageRequest) int
-		ReactMessage   func(childComplexity int, chatID int, messageID int, content string) int
-		ReadMessage    func(childComplexity int, chatID int, messageID *int) int
+		AddChatAdmins         func(childComplexity int, chatID int, admins []int) int
+		AddChatMembers        func(childComplexity int, chatID int, members []int) int
+		CreateChat            func(childComplexity int, request model.CreateChatRequest) int
+		CreateMessage         func(childComplexity int, request model.CreateMessageRequest) int
+		DeleteChat            func(childComplexity int, chatID int) int
+		DeleteMessage         func(childComplexity int, chatID int, messageID int, deleteFor model.DeleteForOptions) int
+		DeleteMessageReaction func(childComplexity int, chatID int, messageID int) int
+		EditChat              func(childComplexity int, chatID int, request model.EditChatRequest) int
+		EditMessage           func(childComplexity int, chatID int, messageID int, request model.ChangeMessageRequest) int
+		ReactMessage          func(childComplexity int, chatID int, messageID int, content string) int
+		ReadMessage           func(childComplexity int, chatID int, messageID *int) int
 	}
 
 	PaginatedChats struct {
@@ -145,6 +146,7 @@ type MutationResolver interface {
 	ReactMessage(ctx context.Context, chatID int, messageID int, content string) (*model.Message, error)
 	DeleteMessage(ctx context.Context, chatID int, messageID int, deleteFor model.DeleteForOptions) (*bool, error)
 	DeleteChat(ctx context.Context, chatID int) (*bool, error)
+	DeleteMessageReaction(ctx context.Context, chatID int, messageID int) (*bool, error)
 }
 type QueryResolver interface {
 	GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error)
@@ -431,6 +433,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteMessage(childComplexity, args["chatId"].(int), args["messageId"].(int), args["deleteFor"].(model.DeleteForOptions)), true
+
+	case "Mutation.deleteMessageReaction":
+		if e.complexity.Mutation.DeleteMessageReaction == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteMessageReaction_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteMessageReaction(childComplexity, args["chatId"].(int), args["messageId"].(int)), true
 
 	case "Mutation.editChat":
 		if e.complexity.Mutation.EditChat == nil {
@@ -880,6 +894,30 @@ func (ec *executionContext) field_Mutation_deleteChat_args(ctx context.Context, 
 		}
 	}
 	args["chatId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteMessageReaction_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["messageId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("messageId"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["messageId"] = arg1
 	return args, nil
 }
 
@@ -3168,6 +3206,58 @@ func (ec *executionContext) fieldContext_Mutation_deleteChat(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteChat_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteMessageReaction(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteMessageReaction(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteMessageReaction(rctx, fc.Args["chatId"].(int), fc.Args["messageId"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteMessageReaction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteMessageReaction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6778,6 +6868,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteChat":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteChat(ctx, field)
+			})
+		case "deleteMessageReaction":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteMessageReaction(ctx, field)
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
