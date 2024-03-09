@@ -61,12 +61,12 @@ func (manager *MessagesManager) GetChatAll(token *jwt.Token, chatId uint, page i
 	}
 
 	count := manager.MessagesQueries.GetAllInChatCount(models.GetAllInChatCountParams{ChatId: chatId, UserId: uint(tokenSubject.UserId)})
-	messages := manager.MessagesQueries.GetAllInChat(models.GetAllInChatParams{ChatId: chatId, Page: page, PerPage: perPage})
+	messages := manager.MessagesQueries.GetAllInChat(models.GetAllInChatParams{ChatId: chatId, Page: page, PerPage: perPage, UserId: uint(tokenSubject.UserId)})
 	paginatedResponse := schemas.NewPaginatedResponse(page, perPage, int(count), *messages)
 	return &paginatedResponse, nil
 }
 
-func (manager *MessagesManager) getTextMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
+func (manager *MessagesManager) createTextMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
 	log.Print("Creating text message")
 	if err := utils.ValidateTextMessage(messageData); err != nil {
 		return err
@@ -126,6 +126,29 @@ func (manager *MessagesManager) createCircleMessage(message *models.Message, mes
 	return nil
 }
 
+func (manager *MessagesManager) sendMessageEvent(message *models.Message, chat *models.Chat, eventType string, includedUsers *[]int) error {
+	if includedUsers == nil {
+		includedUsers = &([]int{})
+		for _, member := range chat.Members {
+			new_included_users := append(*includedUsers, int(member))
+			includedUsers = &new_included_users
+		}
+	}
+
+	messageEvent, err := rabbit.NewSystemEvent(eventType, *includedUsers, message)
+	if err != nil {
+		return err
+	}
+
+	err = rabbit.EventsRabbitConnection.SendEvent(messageEvent)
+	log.Printf("Sended event with type %s to rabbitmq", eventType)
+	if err != nil {
+		log.Printf("Error sending event with type %s to rabbitmq", eventType)
+	}
+
+	return nil
+}
+
 func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRequest, chat *models.Chat, token *jwt.Token) (*models.Message, error) {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
@@ -139,7 +162,7 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 	}
 
 	if messageData.Type.String() == "text" {
-		if err = manager.getTextMessage(message, messageData); err != nil {
+		if err = manager.createTextMessage(message, messageData); err != nil {
 			return nil, err
 		}
 	} else if messageData.Type.String() == "voice" {
@@ -156,23 +179,7 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 		return nil, err
 	}
 
-	var includedUsers []int
-	for _, member := range chat.Members {
-		includedUsers = append(includedUsers, int(member))
-	}
-
-	messageEvent, err := rabbit.NewSystemEvent("message_created", includedUsers, message)
-	if err != nil {
-		return nil, err
-	}
-
-	err = rabbit.EventsRabbitConnection.SendEvent(messageEvent)
-	log.Printf("Sended message to rabbitmq")
-
-	if err != nil {
-		log.Printf("Error when publishing message event in queue: %v", err)
-	}
-
+	manager.sendMessageEvent(message, chat, "message_created", nil)
 	return message, nil
 }
 
@@ -189,23 +196,7 @@ func (manager *MessagesManager) Read(chat *models.Chat, messageId uint, token *j
 
 	manager.MessagesQueries.Read(message, uint(tokenSubject.UserId))
 
-	var included_users []int
-	for _, user := range chat.Members {
-		included_users = append(included_users, int(user))
-	}
-
-	readMessageEvent, err := rabbit.NewSystemEvent("message_readed", included_users, message)
-	if err != nil {
-		return nil, err
-	}
-
-	err = rabbit.EventsRabbitConnection.SendEvent(readMessageEvent)
-
-	if err != nil {
-		log.Printf("Error when publishing message readed event in queue: %v", err)
-	}
-
-	log.Printf("Sended message readed event to rabbitmq")
+	manager.sendMessageEvent(message, chat, "message_readed", nil)
 
 	return message, nil
 }
@@ -231,23 +222,7 @@ func (manager *MessagesManager) ReactMessage(token *jwt.Token, chatId uint, mess
 		return message, nil
 	}
 
-	var included_users []int
-	for _, user := range chat.Members {
-		included_users = append(included_users, int(user))
-	}
-
-	reactMessageEvent, err := rabbit.NewSystemEvent("message_reacted", included_users, message)
-	if err != nil {
-		return nil, err
-	}
-
-	err = rabbit.EventsRabbitConnection.SendEvent(reactMessageEvent)
-
-	if err != nil {
-		log.Printf("Error when publishing message reacted event in queue: %v", err)
-	}
-
-	log.Printf("Sended message reacted event to rabbitmq")
+	manager.sendMessageEvent(message, chat, "message_reacted", nil)
 
 	return message, nil
 }
@@ -262,7 +237,7 @@ func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, mes
 		return err
 	}
 
-	chat, err := manager.ChatsQueries.GetConcrete(uint(tokenSubject.UserId), chatId)
+	chat, err := manager.ChatsQueries.GetWithMember(uint(tokenSubject.UserId), chatId)
 	if err != nil {
 		return err
 	}
@@ -276,16 +251,22 @@ func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, mes
 		return fmt.Errorf("the user with id %d can't delete message with id %d", tokenSubject.UserId, messageId)
 	}
 
-	deleteForArray := []int32{}
+	var deleteForArray []int32
+	var includedUsersArray []int
 	if deleteFor == DeleteForMe {
 		deleteForArray = append(deleteForArray, int32(tokenSubject.UserId))
+		includedUsersArray = append(includedUsersArray, tokenSubject.UserId)
 	} else {
 		for _, member := range chat.Members {
 			deleteForArray = append(deleteForArray, int32(member))
+			includedUsersArray = append(includedUsersArray, int(member))
 		}
 	}
 
 	err = manager.MessagesQueries.DeleteMessage(message, deleteForArray)
+
+	manager.sendMessageEvent(message, chat, "message_deleted", &includedUsersArray)
+
 	return err
 }
 
@@ -306,6 +287,12 @@ func (manager *MessagesManager) DeleteReaction(token *jwt.Token, chatId int, mes
 	}
 
 	manager.MessagesQueries.DeleteReaction(tokenSubject.UserId, message)
+	updatedMessage, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chat.ID, MessageId: uint(messageId), UserId: uint(tokenSubject.UserId)})
+	if err != nil {
+		return err
+	}
+
+	manager.sendMessageEvent(updatedMessage, chat, "message_reaction_deleted", nil)
 	return nil
 }
 
@@ -321,19 +308,23 @@ func (manager *MessagesManager) Update(chat *models.Chat, messageId uint, update
 	}
 
 	message.Content = *updateData.Content
+
 	attachments := pq.StringArray{}
 	for _, attachment := range updateData.Attachments {
 		attachments = append(attachments, attachment)
 	}
+	message.Attachments = attachments
 
 	mentioned := pq.Int32Array{}
 	for _, ment := range updateData.Mentioned {
 		mentioned = append(mentioned, int32(*ment))
 	}
-
-	message.Attachments = attachments
 	message.Mentioned = mentioned
+
 	manager.MessagesQueries.Update(message)
+
+	manager.sendMessageEvent(message, chat, "message_updated", nil)
+
 	return message, nil
 }
 

@@ -95,6 +95,7 @@ func (queries *MessagesQueries) GetAllInChat(params GetAllInChatParams) *[]Messa
 	var messages []Message
 
 	if params.WithDeleted {
+		log.Printf("Fetching chat messages with deleted messages. Chat id: %d", params.ChatId)
 		database.DB.Scopes(Paginate(params.Page, params.PerPage)).Preload(
 			"Reactions",
 		).Where(
@@ -103,6 +104,7 @@ func (queries *MessagesQueries) GetAllInChat(params GetAllInChatParams) *[]Messa
 			"created_at DESC",
 		).Find(&messages)
 	} else {
+		log.Printf("Fetching chat messages without deleted messages. Chat id: %d. User id: %d", params.ChatId, params.UserId)
 		database.DB.Scopes(Paginate(params.Page, params.PerPage)).Preload(
 			"Reactions",
 		).Where(

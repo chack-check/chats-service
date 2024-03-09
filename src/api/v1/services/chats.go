@@ -179,23 +179,23 @@ func (manager *ChatsManager) createUserChat(chat *models.Chat, currentUser *prot
 	return nil
 }
 
-func (manager *ChatsManager) sendChatCreatedEvent(chat *models.Chat) error {
+func (manager *ChatsManager) sendChatEvent(chat *models.Chat, eventType string) error {
 	var included_users []int
 	for _, user := range chat.Members {
 		included_users = append(included_users, int(user))
 	}
 
-	chatEvent, err := rabbit.NewSystemEvent("chat_created", included_users, chat)
+	chatEvent, err := rabbit.NewSystemEvent(eventType, included_users, chat)
 	if err != nil {
 		return err
 	}
 
 	err = rabbit.EventsRabbitConnection.SendEvent(chatEvent)
-	log.Printf("Sended chat created event to rabbitmq")
+	log.Printf("Sended event with type %s to rabbitmq", eventType)
 
 	if err != nil {
-		log.Printf("Error when publishing chat created event in queue: %v", err)
-		return fmt.Errorf("error sending chat created event")
+		log.Printf("Error when publishing event with type %s in queue: %v", eventType, err)
+		return fmt.Errorf("error sending event with type %s", eventType)
 	}
 
 	return nil
@@ -236,7 +236,7 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 			return err
 		}
 
-		manager.sendChatCreatedEvent(chat)
+		manager.sendChatEvent(chat, "chat_created")
 		return nil
 	}
 
@@ -247,7 +247,7 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 	members := pq.Int32Array{int32(tokenSubject.UserId), int32(chatUserId)}
 	if chatId := manager.ChatsQueries.GetDeletedChatId(members); chatId > 0 {
 		manager.ChatsQueries.RestoreChat(chatId)
-		if err := manager.sendChatCreatedEvent(chat); err != nil {
+		if err := manager.sendChatEvent(chat, "chat_created"); err != nil {
 			return err
 		}
 
@@ -272,12 +272,13 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 		return err
 	}
 
-	manager.sendChatCreatedEvent(chat)
+	manager.sendChatEvent(chat, "chat_created")
 	return nil
 }
 
 func (manager *ChatsManager) Delete(chat *models.Chat) {
 	manager.ChatsQueries.Delete(chat)
+	manager.sendChatEvent(chat, "chat_deleted")
 }
 
 func NewChatsManager() *ChatsManager {
