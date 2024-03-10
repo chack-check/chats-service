@@ -75,6 +75,7 @@ jobs:
             kubernetes/stage/app/ingress.yml
           images: |
             ${{ secrets.DOCKERHUB_USERNAME }}/chack-chats-service:${{ github.sha }}
+            
       - name: Refresh graphql-mesh front-end service
         run: |
           curl \
