@@ -71,3 +71,8 @@ spec:
                 secretKeyRef:
                   name: users-service-credentials
                   key: secret_key
+            - name: FILES_SIGNATURE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: files-service-credentials
+                  key: signature_key

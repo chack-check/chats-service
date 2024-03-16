@@ -6,6 +6,7 @@ import (
 
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/models"
+	"github.com/chack-check/chats-service/factories"
 )
 
 func ChatRequestToDbChat(request *model.CreateChatRequest) (*models.Chat, error) {
@@ -13,16 +14,33 @@ func ChatRequestToDbChat(request *model.CreateChatRequest) (*models.Chat, error)
 		return &models.Chat{}, nil
 	}
 
-	if request.Title != nil && request.AvatarURL != nil && request.Members != nil {
+	if request.Title != nil && request.Avatar != nil && request.Members != nil {
 		var members []int64
 		for _, v := range request.Members {
 			members = append(members, int64(v))
 		}
 
-		return &models.Chat{Title: *request.Title, Members: members, AvatarURL: *request.AvatarURL}, nil
+		var converted_url string
+		var converted_filename string
+		if request.Avatar.Converted != nil {
+			converted_url = request.Avatar.Converted.URL
+			converted_filename = request.Avatar.Converted.Filename
+		} else {
+			converted_url = ""
+			converted_filename = ""
+		}
+
+		avatar := models.SavedFile{
+			OriginalUrl:       request.Avatar.Original.URL,
+			OriginalFilename:  request.Avatar.Original.Filename,
+			ConvertedUrl:      converted_url,
+			ConvertedFilename: converted_filename,
+		}
+
+		return &models.Chat{Title: *request.Title, Members: members, Avatar: avatar}, nil
 	}
 
-	return nil, fmt.Errorf("Not enough data for chat creation")
+	return nil, fmt.Errorf("not enough data for chat creation")
 }
 
 func DbChatToSchema(chat models.Chat) model.Chat {
@@ -37,9 +55,11 @@ func DbChatToSchema(chat models.Chat) model.Chat {
 		admins = append(admins, int(v))
 	}
 
+	avatar := factories.DbFileToSchema(chat.Avatar)
+
 	return model.Chat{
 		ID:         int(chat.ID),
-		AvatarURL:  chat.AvatarURL,
+		Avatar:     &avatar,
 		Title:      chat.Title,
 		Type:       model.ChatType(chat.Type),
 		Members:    members,
@@ -63,7 +83,23 @@ func DbMessageToSchema(message models.Message) model.Message {
 		mentioned = append(mentioned, int(v))
 	}
 
-	var attachments []*model.FileObjectResponse
+	var voice_schema *model.SavedFile
+	if message.VoiceId != nil {
+		schema := factories.DbFileToSchema(message.Voice)
+		voice_schema = &schema
+	}
+
+	var circle_schema *model.SavedFile
+	if message.CircleId != nil {
+		schema := factories.DbFileToSchema(message.Circle)
+		circle_schema = &schema
+	}
+
+	var attachments []*model.SavedFile
+	for _, attachment := range message.Attachments {
+		schema := factories.DbFileToSchema(attachment)
+		attachments = append(attachments, &schema)
+	}
 
 	var reactions []*model.Reaction
 	for _, v := range message.Reactions {
@@ -79,8 +115,8 @@ func DbMessageToSchema(message models.Message) model.Message {
 		SenderID:    &senderId,
 		ChatID:      int(message.ChatId),
 		Content:     &message.Content,
-		VoiceURL:    &message.VoiceURL,
-		CircleURL:   &message.CircleURL,
+		Voice:       voice_schema,
+		Circle:      circle_schema,
 		ReplyToID:   &replyTo,
 		ReadedBy:    readedBy,
 		Reactions:   reactions,

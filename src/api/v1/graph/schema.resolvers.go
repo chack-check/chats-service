@@ -68,6 +68,12 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 		return nil, err
 	}
 
+	if request.Avatar != nil {
+		if err := utils.ValidateUploadingFile(*request.Avatar, "avatar"); err != nil {
+			return nil, err
+		}
+	}
+
 	chat, err := utils.ChatRequestToDbChat(&request)
 	if err != nil {
 		return nil, err
@@ -75,10 +81,17 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 
 	chatsManager := services.NewChatsManager()
 	log.Printf("Creating chat: %v from request: %v", chat, request)
-	log.Printf("Creating chat request user: %v", *request.User)
-	err = chatsManager.Create(chat, token, uint(*request.User))
-	if err != nil {
-		return nil, err
+	if request.User != nil {
+		log.Printf("Creating chat request user: %v", *request.User)
+		err = chatsManager.Create(chat, token, uint(*request.User))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = chatsManager.Create(chat, token, 0)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	chatSchema := utils.DbChatToSchema(*chat)
@@ -315,7 +328,7 @@ func (r *queryResolver) GetChat(ctx context.Context, chatID int) (*model.Chat, e
 }
 
 // GetChatAttachments is the resolver for the getChatAttachments field.
-func (r *queryResolver) GetChatAttachments(ctx context.Context, chatID int, fileType model.FileType) (*model.FileObjectResponse, error) {
+func (r *queryResolver) GetChatAttachments(ctx context.Context, chatID int, fileType model.FileType) (*model.PaginatedFiles, error) {
 	panic(fmt.Errorf("not implemented: GetChatAttachments - getChatAttachments"))
 }
 

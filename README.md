@@ -30,3 +30,11 @@ $ make dev
 ```
 $ go run github.com/99designs/gqlgen generate
 ```
+
+## Регенерация protobuf
+
+Переходим `/src/` и запускаем:
+
+```
+$ protoc --experimental_allow_proto3_optional --go_out=./protochats --go_opt=paths=source_relative --go-grpc_out=./protochats --go-grpc_opt=paths=source_relative chats.proto
+```

@@ -8,7 +8,8 @@ import (
 type Chat struct {
 	*gorm.Model
 	ID         uint          `gorm:"primaryKey" json:"id"`
-	AvatarURL  string        `json:"avatar_url"`
+	AvatarId   *uint         `json:"avatar_id"`
+	Avatar     SavedFile     `gorm:"foreignKey:AvatarId" json:"avatar"`
 	Title      string        `json:"title"`
 	Type       string        `json:"type"`
 	Members    pq.Int64Array `gorm:"type:integer[]" json:"members"`

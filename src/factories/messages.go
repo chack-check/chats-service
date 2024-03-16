@@ -11,7 +11,36 @@ func (factory *MessagesFactory) SchemaToProto(message *models.Message, chat *mod
 	var attachments []string
 
 	for _, attachment := range message.Attachments {
-		attachments = append(attachments, attachment)
+		var attachment_url string
+
+		if attachment.ConvertedUrl != "" {
+			attachment_url = attachment.ConvertedUrl
+		} else {
+			attachment_url = attachment.OriginalUrl
+		}
+
+		attachments = append(attachments, attachment_url)
+	}
+
+	var chat_avatar_url string
+	if chat.Avatar.ConvertedUrl != "" {
+		chat_avatar_url = chat.Avatar.ConvertedUrl
+	} else {
+		chat_avatar_url = chat.Avatar.OriginalUrl
+	}
+
+	var voice_url string
+	if message.Voice.ConvertedUrl != "" {
+		voice_url = message.Voice.ConvertedUrl
+	} else {
+		voice_url = message.Voice.OriginalUrl
+	}
+
+	var circle_url string
+	if message.Circle.ConvertedUrl != "" {
+		circle_url = message.Circle.ConvertedUrl
+	} else {
+		circle_url = message.Circle.OriginalUrl
 	}
 
 	return &pb.MessageResponse{
@@ -19,11 +48,11 @@ func (factory *MessagesFactory) SchemaToProto(message *models.Message, chat *mod
 		SenderId:      int32(message.SenderId),
 		ChatId:        int32(chat.ID),
 		ChatTitle:     chat.Title,
-		ChatAvatarUrl: chat.AvatarURL,
+		ChatAvatarUrl: chat_avatar_url,
 		ChatType:      chat.Type,
 		Content:       message.Content,
-		VoiceUrl:      message.VoiceURL,
-		CircleUrl:     message.CircleURL,
+		VoiceUrl:      voice_url,
+		CircleUrl:     circle_url,
 		Attachments:   attachments,
 		ReadedBy:      message.ReadedBy,
 	}

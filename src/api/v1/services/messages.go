@@ -9,6 +9,7 @@ import (
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/schemas"
 	"github.com/chack-check/chats-service/api/v1/utils"
+	"github.com/chack-check/chats-service/factories"
 	"github.com/chack-check/chats-service/rabbit"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lib/pq"
@@ -77,9 +78,15 @@ func (manager *MessagesManager) createTextMessage(message *models.Message, messa
 		message.Content = messageDataContent
 	}
 
+	var message_attachments []models.SavedFile
 	if len(messageData.Attachments) != 0 {
-		message.Attachments = messageData.Attachments
+		for _, attachment := range messageData.Attachments {
+			utils.ValidateUploadingFile(*attachment, "file_in_chat")
+			saved_file := factories.UploadingFileToDbFile(*attachment)
+			message_attachments = append(message_attachments, saved_file)
+		}
 	}
+	message.Attachments = message_attachments
 
 	if messageData.ReplyToID != nil {
 		message.ReplyToID = uint(*messageData.ReplyToID)
@@ -102,7 +109,11 @@ func (manager *MessagesManager) createVoiceMessage(message *models.Message, mess
 		return err
 	}
 
-	message.VoiceURL = *messageData.Voice
+	if messageData.Voice == nil {
+		return fmt.Errorf("you can't create voice message without voice field")
+	}
+
+	message.Voice = factories.UploadingFileToDbFile(*messageData.Voice)
 
 	if messageData.ReplyToID != nil && *messageData.ReplyToID != 0 {
 		message.ReplyToID = uint(*messageData.ReplyToID)
@@ -117,9 +128,13 @@ func (manager *MessagesManager) createCircleMessage(message *models.Message, mes
 		return err
 	}
 
-	message.CircleURL = *messageData.Circle
+	if messageData.Circle == nil {
+		return fmt.Errorf("you can't create circle message without circle field")
+	}
 
-	if *messageData.ReplyToID != 0 {
+	message.Circle = factories.UploadingFileToDbFile(*messageData.Circle)
+
+	if messageData.ReplyToID != nil && *messageData.ReplyToID != 0 {
 		message.ReplyToID = uint(*messageData.ReplyToID)
 	}
 
@@ -153,6 +168,22 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, attachment := range messageData.Attachments {
+		if err := utils.ValidateUploadingFile(*attachment, "file_in_chat"); err != nil {
+			return nil, err
+		}
+	}
+	if messageData.Voice != nil {
+		if err := utils.ValidateUploadingFile(*messageData.Voice, "voice"); err != nil {
+			return nil, err
+		}
+	}
+	if messageData.Circle != nil {
+		if err := utils.ValidateUploadingFile(*messageData.Circle, "circle"); err != nil {
+			return nil, err
+		}
 	}
 
 	message := &models.Message{
@@ -309,9 +340,14 @@ func (manager *MessagesManager) Update(chat *models.Chat, messageId uint, update
 
 	message.Content = *updateData.Content
 
-	attachments := pq.StringArray{}
+	var attachments []models.SavedFile
 	for _, attachment := range updateData.Attachments {
-		attachments = append(attachments, attachment)
+		if err := utils.ValidateUploadingFile(*attachment, "file_in_chat"); err != nil {
+			return nil, err
+		}
+
+		saved_file := factories.UploadingFileToDbFile(*attachment)
+		attachments = append(attachments, saved_file)
 	}
 	message.Attachments = attachments
 

@@ -22,7 +22,7 @@ func (queries *ChatsQueries) Create(chat *Chat) error {
 
 func (queries *ChatsQueries) GetConcrete(userId uint, id uint) (*Chat, error) {
 	var chat Chat
-	database.DB.Where("owner_id = ? AND id = ?", userId, id).First(&chat)
+	database.DB.Preload("Avatar").Where("owner_id = ? AND id = ?", userId, id).First(&chat)
 	if chat.ID == 0 {
 		return &Chat{}, fmt.Errorf("Chat with this ID doesn't exist")
 	}
@@ -34,7 +34,7 @@ func (queries *ChatsQueries) GetByIds(chatIds []int, userId int) ([]*Chat, error
 
 	log.Printf("Getting chats with ids %v and for user id %d", chatIds, userId)
 
-	database.DB.Where(
+	database.DB.Preload("Avatar").Where(
 		"? = ANY(members) AND id IN ?", userId, chatIds,
 	).Find(&chats)
 
@@ -43,7 +43,7 @@ func (queries *ChatsQueries) GetByIds(chatIds []int, userId int) ([]*Chat, error
 
 func (queries *ChatsQueries) GetWithMember(chatId uint, userId uint) (*Chat, error) {
 	var chat Chat
-	database.DB.Where("? = ANY(members) AND id = ?", userId, chatId).First(&chat)
+	database.DB.Preload("Avatar").Where("? = ANY(members) AND id = ?", userId, chatId).First(&chat)
 	if chat.ID == 0 {
 		return &Chat{}, fmt.Errorf("Chat with this ID doesn't exist")
 	}
@@ -55,7 +55,7 @@ func (queries *ChatsQueries) GetAllWithMember(userId uint, page int, perPage int
 
 	database.DB.Scopes(
 		Paginate(page, perPage),
-	).Where(
+	).Preload("Avatar").Where(
 		"? = ANY(members)", userId,
 	).Order(
 		"(SELECT created_at FROM messages WHERE chat_id = chats.id ORDER BY created_at DESC LIMIT 1) DESC NULLS LAST",
@@ -73,7 +73,7 @@ func (queries *ChatsQueries) GetAllWithMemberCount(userId uint) *int64 {
 
 func (queries *ChatsQueries) GetAll(userId uint) *[]Chat {
 	var chats []Chat
-	database.DB.Where(&Chat{OwnerId: userId}).Find(&chats)
+	database.DB.Preload("Avatar").Where(&Chat{OwnerId: userId}).Find(&chats)
 	return &chats
 }
 

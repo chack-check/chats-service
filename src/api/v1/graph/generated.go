@@ -47,7 +47,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Chat struct {
 		Admins     func(childComplexity int) int
-		AvatarURL  func(childComplexity int) int
+		Avatar     func(childComplexity int) int
 		ID         func(childComplexity int) int
 		IsArchived func(childComplexity int) int
 		Members    func(childComplexity int) int
@@ -61,16 +61,10 @@ type ComplexityRoot struct {
 		MessageID func(childComplexity int) int
 	}
 
-	FileObjectResponse struct {
-		ContentType func(childComplexity int) int
-		FileURL     func(childComplexity int) int
-		Filename    func(childComplexity int) int
-	}
-
 	Message struct {
 		Attachments func(childComplexity int) int
 		ChatID      func(childComplexity int) int
-		CircleURL   func(childComplexity int) int
+		Circle      func(childComplexity int) int
 		Content     func(childComplexity int) int
 		Datetime    func(childComplexity int) int
 		Datetine    func(childComplexity int) int
@@ -81,7 +75,7 @@ type ComplexityRoot struct {
 		ReplyToID   func(childComplexity int) int
 		SenderID    func(childComplexity int) int
 		Type        func(childComplexity int) int
-		VoiceURL    func(childComplexity int) int
+		Voice       func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -133,6 +127,13 @@ type ComplexityRoot struct {
 		Content func(childComplexity int) int
 		UserID  func(childComplexity int) int
 	}
+
+	SavedFile struct {
+		ConvertedFilename func(childComplexity int) int
+		ConvertedURL      func(childComplexity int) int
+		OriginalFilename  func(childComplexity int) int
+		OriginalURL       func(childComplexity int) int
+	}
 }
 
 type MutationResolver interface {
@@ -153,7 +154,7 @@ type QueryResolver interface {
 	GetChats(ctx context.Context, page *int, perPage *int) (*model.PaginatedChats, error)
 	SearchChats(ctx context.Context, query string, page *int, perPage *int) (*model.PaginatedChats, error)
 	GetChat(ctx context.Context, chatID int) (*model.Chat, error)
-	GetChatAttachments(ctx context.Context, chatID int, fileType model.FileType) (*model.FileObjectResponse, error)
+	GetChatAttachments(ctx context.Context, chatID int, fileType model.FileType) (*model.PaginatedFiles, error)
 	SearchMessages(ctx context.Context, query *string, chatID *int, page *int, perPage *int) (*model.PaginatedMessages, error)
 	GetLastMessagesForChats(ctx context.Context, chatIds []int) ([]*model.Message, error)
 }
@@ -180,12 +181,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Chat.Admins(childComplexity), true
 
-	case "Chat.avatarURL":
-		if e.complexity.Chat.AvatarURL == nil {
+	case "Chat.avatar":
+		if e.complexity.Chat.Avatar == nil {
 			break
 		}
 
-		return e.complexity.Chat.AvatarURL(childComplexity), true
+		return e.complexity.Chat.Avatar(childComplexity), true
 
 	case "Chat.id":
 		if e.complexity.Chat.ID == nil {
@@ -243,27 +244,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.CreateReactionRequest.MessageID(childComplexity), true
 
-	case "FileObjectResponse.contentType":
-		if e.complexity.FileObjectResponse.ContentType == nil {
-			break
-		}
-
-		return e.complexity.FileObjectResponse.ContentType(childComplexity), true
-
-	case "FileObjectResponse.fileURL":
-		if e.complexity.FileObjectResponse.FileURL == nil {
-			break
-		}
-
-		return e.complexity.FileObjectResponse.FileURL(childComplexity), true
-
-	case "FileObjectResponse.filename":
-		if e.complexity.FileObjectResponse.Filename == nil {
-			break
-		}
-
-		return e.complexity.FileObjectResponse.Filename(childComplexity), true
-
 	case "Message.attachments":
 		if e.complexity.Message.Attachments == nil {
 			break
@@ -278,12 +258,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Message.ChatID(childComplexity), true
 
-	case "Message.circleURL":
-		if e.complexity.Message.CircleURL == nil {
+	case "Message.circle":
+		if e.complexity.Message.Circle == nil {
 			break
 		}
 
-		return e.complexity.Message.CircleURL(childComplexity), true
+		return e.complexity.Message.Circle(childComplexity), true
 
 	case "Message.content":
 		if e.complexity.Message.Content == nil {
@@ -355,12 +335,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Message.Type(childComplexity), true
 
-	case "Message.voiceURL":
-		if e.complexity.Message.VoiceURL == nil {
+	case "Message.voice":
+		if e.complexity.Message.Voice == nil {
 			break
 		}
 
-		return e.complexity.Message.VoiceURL(childComplexity), true
+		return e.complexity.Message.Voice(childComplexity), true
 
 	case "Mutation.addChatAdmins":
 		if e.complexity.Mutation.AddChatAdmins == nil {
@@ -676,6 +656,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Reaction.UserID(childComplexity), true
 
+	case "SavedFile.convertedFilename":
+		if e.complexity.SavedFile.ConvertedFilename == nil {
+			break
+		}
+
+		return e.complexity.SavedFile.ConvertedFilename(childComplexity), true
+
+	case "SavedFile.convertedUrl":
+		if e.complexity.SavedFile.ConvertedURL == nil {
+			break
+		}
+
+		return e.complexity.SavedFile.ConvertedURL(childComplexity), true
+
+	case "SavedFile.originalFilename":
+		if e.complexity.SavedFile.OriginalFilename == nil {
+			break
+		}
+
+		return e.complexity.SavedFile.OriginalFilename(childComplexity), true
+
+	case "SavedFile.originalUrl":
+		if e.complexity.SavedFile.OriginalURL == nil {
+			break
+		}
+
+		return e.complexity.SavedFile.OriginalURL(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -688,6 +696,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateChatRequest,
 		ec.unmarshalInputCreateMessageRequest,
 		ec.unmarshalInputEditChatRequest,
+		ec.unmarshalInputUploadingFile,
+		ec.unmarshalInputUploadingFileMeta,
 	)
 	first := true
 
@@ -1351,8 +1361,8 @@ func (ec *executionContext) fieldContext_Chat_id(ctx context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _Chat_avatarURL(ctx context.Context, field graphql.CollectedField, obj *model.Chat) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Chat_avatarURL(ctx, field)
+func (ec *executionContext) _Chat_avatar(ctx context.Context, field graphql.CollectedField, obj *model.Chat) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Chat_avatar(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1365,7 +1375,7 @@ func (ec *executionContext) _Chat_avatarURL(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AvatarURL, nil
+		return obj.Avatar, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1377,19 +1387,29 @@ func (ec *executionContext) _Chat_avatarURL(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*model.SavedFile)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNSavedFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFile(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Chat_avatarURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Chat_avatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Chat",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "originalUrl":
+				return ec.fieldContext_SavedFile_originalUrl(ctx, field)
+			case "originalFilename":
+				return ec.fieldContext_SavedFile_originalFilename(ctx, field)
+			case "convertedUrl":
+				return ec.fieldContext_SavedFile_convertedUrl(ctx, field)
+			case "convertedFilename":
+				return ec.fieldContext_SavedFile_convertedFilename(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SavedFile", field.Name)
 		},
 	}
 	return fc, nil
@@ -1741,138 +1761,6 @@ func (ec *executionContext) fieldContext_CreateReactionRequest_messageId(ctx con
 	return fc, nil
 }
 
-func (ec *executionContext) _FileObjectResponse_filename(ctx context.Context, field graphql.CollectedField, obj *model.FileObjectResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_FileObjectResponse_filename(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Filename, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_FileObjectResponse_filename(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FileObjectResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FileObjectResponse_contentType(ctx context.Context, field graphql.CollectedField, obj *model.FileObjectResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_FileObjectResponse_contentType(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ContentType, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_FileObjectResponse_contentType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FileObjectResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FileObjectResponse_fileURL(ctx context.Context, field graphql.CollectedField, obj *model.FileObjectResponse) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_FileObjectResponse_fileURL(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.FileURL, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_FileObjectResponse_fileURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FileObjectResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Message_id(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Message_id(ctx, field)
 	if err != nil {
@@ -2087,8 +1975,8 @@ func (ec *executionContext) fieldContext_Message_content(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Message_voiceURL(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Message_voiceURL(ctx, field)
+func (ec *executionContext) _Message_voice(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Message_voice(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2101,7 +1989,7 @@ func (ec *executionContext) _Message_voiceURL(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.VoiceURL, nil
+		return obj.Voice, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2110,26 +1998,36 @@ func (ec *executionContext) _Message_voiceURL(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.SavedFile)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOSavedFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFile(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Message_voiceURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Message_voice(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Message",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "originalUrl":
+				return ec.fieldContext_SavedFile_originalUrl(ctx, field)
+			case "originalFilename":
+				return ec.fieldContext_SavedFile_originalFilename(ctx, field)
+			case "convertedUrl":
+				return ec.fieldContext_SavedFile_convertedUrl(ctx, field)
+			case "convertedFilename":
+				return ec.fieldContext_SavedFile_convertedFilename(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SavedFile", field.Name)
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Message_circleURL(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Message_circleURL(ctx, field)
+func (ec *executionContext) _Message_circle(ctx context.Context, field graphql.CollectedField, obj *model.Message) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Message_circle(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2142,7 +2040,7 @@ func (ec *executionContext) _Message_circleURL(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CircleURL, nil
+		return obj.Circle, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2151,19 +2049,29 @@ func (ec *executionContext) _Message_circleURL(ctx context.Context, field graphq
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(*model.SavedFile)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOSavedFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFile(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Message_circleURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Message_circle(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Message",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "originalUrl":
+				return ec.fieldContext_SavedFile_originalUrl(ctx, field)
+			case "originalFilename":
+				return ec.fieldContext_SavedFile_originalFilename(ctx, field)
+			case "convertedUrl":
+				return ec.fieldContext_SavedFile_convertedUrl(ctx, field)
+			case "convertedFilename":
+				return ec.fieldContext_SavedFile_convertedFilename(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SavedFile", field.Name)
 		},
 	}
 	return fc, nil
@@ -2363,11 +2271,14 @@ func (ec *executionContext) _Message_attachments(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.FileObjectResponse)
+	res := resTmp.([]*model.SavedFile)
 	fc.Result = res
-	return ec.marshalOFileObjectResponse2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponseᚄ(ctx, field.Selections, res)
+	return ec.marshalNSavedFile2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFileᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Message_attachments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2378,14 +2289,16 @@ func (ec *executionContext) fieldContext_Message_attachments(ctx context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "filename":
-				return ec.fieldContext_FileObjectResponse_filename(ctx, field)
-			case "contentType":
-				return ec.fieldContext_FileObjectResponse_contentType(ctx, field)
-			case "fileURL":
-				return ec.fieldContext_FileObjectResponse_fileURL(ctx, field)
+			case "originalUrl":
+				return ec.fieldContext_SavedFile_originalUrl(ctx, field)
+			case "originalFilename":
+				return ec.fieldContext_SavedFile_originalFilename(ctx, field)
+			case "convertedUrl":
+				return ec.fieldContext_SavedFile_convertedUrl(ctx, field)
+			case "convertedFilename":
+				return ec.fieldContext_SavedFile_convertedFilename(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type FileObjectResponse", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type SavedFile", field.Name)
 		},
 	}
 	return fc, nil
@@ -2525,10 +2438,10 @@ func (ec *executionContext) fieldContext_Mutation_createMessage(ctx context.Cont
 				return ec.fieldContext_Message_chatId(ctx, field)
 			case "content":
 				return ec.fieldContext_Message_content(ctx, field)
-			case "voiceURL":
-				return ec.fieldContext_Message_voiceURL(ctx, field)
-			case "circleURL":
-				return ec.fieldContext_Message_circleURL(ctx, field)
+			case "voice":
+				return ec.fieldContext_Message_voice(ctx, field)
+			case "circle":
+				return ec.fieldContext_Message_circle(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
 			case "readedBy":
@@ -2610,10 +2523,10 @@ func (ec *executionContext) fieldContext_Mutation_editMessage(ctx context.Contex
 				return ec.fieldContext_Message_chatId(ctx, field)
 			case "content":
 				return ec.fieldContext_Message_content(ctx, field)
-			case "voiceURL":
-				return ec.fieldContext_Message_voiceURL(ctx, field)
-			case "circleURL":
-				return ec.fieldContext_Message_circleURL(ctx, field)
+			case "voice":
+				return ec.fieldContext_Message_voice(ctx, field)
+			case "circle":
+				return ec.fieldContext_Message_circle(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
 			case "readedBy":
@@ -2687,8 +2600,8 @@ func (ec *executionContext) fieldContext_Mutation_createChat(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Chat_id(ctx, field)
-			case "avatarURL":
-				return ec.fieldContext_Chat_avatarURL(ctx, field)
+			case "avatar":
+				return ec.fieldContext_Chat_avatar(ctx, field)
 			case "title":
 				return ec.fieldContext_Chat_title(ctx, field)
 			case "type":
@@ -2760,8 +2673,8 @@ func (ec *executionContext) fieldContext_Mutation_addChatMembers(ctx context.Con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Chat_id(ctx, field)
-			case "avatarURL":
-				return ec.fieldContext_Chat_avatarURL(ctx, field)
+			case "avatar":
+				return ec.fieldContext_Chat_avatar(ctx, field)
 			case "title":
 				return ec.fieldContext_Chat_title(ctx, field)
 			case "type":
@@ -2833,8 +2746,8 @@ func (ec *executionContext) fieldContext_Mutation_addChatAdmins(ctx context.Cont
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Chat_id(ctx, field)
-			case "avatarURL":
-				return ec.fieldContext_Chat_avatarURL(ctx, field)
+			case "avatar":
+				return ec.fieldContext_Chat_avatar(ctx, field)
 			case "title":
 				return ec.fieldContext_Chat_title(ctx, field)
 			case "type":
@@ -2906,8 +2819,8 @@ func (ec *executionContext) fieldContext_Mutation_editChat(ctx context.Context, 
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Chat_id(ctx, field)
-			case "avatarURL":
-				return ec.fieldContext_Chat_avatarURL(ctx, field)
+			case "avatar":
+				return ec.fieldContext_Chat_avatar(ctx, field)
 			case "title":
 				return ec.fieldContext_Chat_title(ctx, field)
 			case "type":
@@ -2987,10 +2900,10 @@ func (ec *executionContext) fieldContext_Mutation_readMessage(ctx context.Contex
 				return ec.fieldContext_Message_chatId(ctx, field)
 			case "content":
 				return ec.fieldContext_Message_content(ctx, field)
-			case "voiceURL":
-				return ec.fieldContext_Message_voiceURL(ctx, field)
-			case "circleURL":
-				return ec.fieldContext_Message_circleURL(ctx, field)
+			case "voice":
+				return ec.fieldContext_Message_voice(ctx, field)
+			case "circle":
+				return ec.fieldContext_Message_circle(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
 			case "readedBy":
@@ -3072,10 +2985,10 @@ func (ec *executionContext) fieldContext_Mutation_reactMessage(ctx context.Conte
 				return ec.fieldContext_Message_chatId(ctx, field)
 			case "content":
 				return ec.fieldContext_Message_content(ctx, field)
-			case "voiceURL":
-				return ec.fieldContext_Message_voiceURL(ctx, field)
-			case "circleURL":
-				return ec.fieldContext_Message_circleURL(ctx, field)
+			case "voice":
+				return ec.fieldContext_Message_voice(ctx, field)
+			case "circle":
+				return ec.fieldContext_Message_circle(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
 			case "readedBy":
@@ -3434,8 +3347,8 @@ func (ec *executionContext) fieldContext_PaginatedChats_data(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Chat_id(ctx, field)
-			case "avatarURL":
-				return ec.fieldContext_Chat_avatarURL(ctx, field)
+			case "avatar":
+				return ec.fieldContext_Chat_avatar(ctx, field)
 			case "title":
 				return ec.fieldContext_Chat_title(ctx, field)
 			case "type":
@@ -3608,11 +3521,14 @@ func (ec *executionContext) _PaginatedFiles_data(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.FileObjectResponse)
+	res := resTmp.([]*model.SavedFile)
 	fc.Result = res
-	return ec.marshalOFileObjectResponse2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponseᚄ(ctx, field.Selections, res)
+	return ec.marshalNSavedFile2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFileᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_PaginatedFiles_data(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3623,14 +3539,16 @@ func (ec *executionContext) fieldContext_PaginatedFiles_data(ctx context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "filename":
-				return ec.fieldContext_FileObjectResponse_filename(ctx, field)
-			case "contentType":
-				return ec.fieldContext_FileObjectResponse_contentType(ctx, field)
-			case "fileURL":
-				return ec.fieldContext_FileObjectResponse_fileURL(ctx, field)
+			case "originalUrl":
+				return ec.fieldContext_SavedFile_originalUrl(ctx, field)
+			case "originalFilename":
+				return ec.fieldContext_SavedFile_originalFilename(ctx, field)
+			case "convertedUrl":
+				return ec.fieldContext_SavedFile_convertedUrl(ctx, field)
+			case "convertedFilename":
+				return ec.fieldContext_SavedFile_convertedFilename(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type FileObjectResponse", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type SavedFile", field.Name)
 		},
 	}
 	return fc, nil
@@ -3814,10 +3732,10 @@ func (ec *executionContext) fieldContext_PaginatedMessages_data(ctx context.Cont
 				return ec.fieldContext_Message_chatId(ctx, field)
 			case "content":
 				return ec.fieldContext_Message_content(ctx, field)
-			case "voiceURL":
-				return ec.fieldContext_Message_voiceURL(ctx, field)
-			case "circleURL":
-				return ec.fieldContext_Message_circleURL(ctx, field)
+			case "voice":
+				return ec.fieldContext_Message_voice(ctx, field)
+			case "circle":
+				return ec.fieldContext_Message_circle(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
 			case "readedBy":
@@ -4075,8 +3993,8 @@ func (ec *executionContext) fieldContext_Query_getChat(ctx context.Context, fiel
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Chat_id(ctx, field)
-			case "avatarURL":
-				return ec.fieldContext_Chat_avatarURL(ctx, field)
+			case "avatar":
+				return ec.fieldContext_Chat_avatar(ctx, field)
 			case "title":
 				return ec.fieldContext_Chat_title(ctx, field)
 			case "type":
@@ -4133,9 +4051,9 @@ func (ec *executionContext) _Query_getChatAttachments(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.FileObjectResponse)
+	res := resTmp.(*model.PaginatedFiles)
 	fc.Result = res
-	return ec.marshalNFileObjectResponse2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponse(ctx, field.Selections, res)
+	return ec.marshalNPaginatedFiles2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐPaginatedFiles(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_getChatAttachments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4146,14 +4064,16 @@ func (ec *executionContext) fieldContext_Query_getChatAttachments(ctx context.Co
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "filename":
-				return ec.fieldContext_FileObjectResponse_filename(ctx, field)
-			case "contentType":
-				return ec.fieldContext_FileObjectResponse_contentType(ctx, field)
-			case "fileURL":
-				return ec.fieldContext_FileObjectResponse_fileURL(ctx, field)
+			case "page":
+				return ec.fieldContext_PaginatedFiles_page(ctx, field)
+			case "numPages":
+				return ec.fieldContext_PaginatedFiles_numPages(ctx, field)
+			case "perPage":
+				return ec.fieldContext_PaginatedFiles_perPage(ctx, field)
+			case "data":
+				return ec.fieldContext_PaginatedFiles_data(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type FileObjectResponse", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type PaginatedFiles", field.Name)
 		},
 	}
 	defer func() {
@@ -4281,10 +4201,10 @@ func (ec *executionContext) fieldContext_Query_getLastMessagesForChats(ctx conte
 				return ec.fieldContext_Message_chatId(ctx, field)
 			case "content":
 				return ec.fieldContext_Message_content(ctx, field)
-			case "voiceURL":
-				return ec.fieldContext_Message_voiceURL(ctx, field)
-			case "circleURL":
-				return ec.fieldContext_Message_circleURL(ctx, field)
+			case "voice":
+				return ec.fieldContext_Message_voice(ctx, field)
+			case "circle":
+				return ec.fieldContext_Message_circle(ctx, field)
 			case "replyToId":
 				return ec.fieldContext_Message_replyToId(ctx, field)
 			case "readedBy":
@@ -4529,6 +4449,176 @@ func (ec *executionContext) fieldContext_Reaction_userId(ctx context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SavedFile_originalUrl(ctx context.Context, field graphql.CollectedField, obj *model.SavedFile) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SavedFile_originalUrl(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OriginalURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SavedFile_originalUrl(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SavedFile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SavedFile_originalFilename(ctx context.Context, field graphql.CollectedField, obj *model.SavedFile) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SavedFile_originalFilename(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OriginalFilename, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SavedFile_originalFilename(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SavedFile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SavedFile_convertedUrl(ctx context.Context, field graphql.CollectedField, obj *model.SavedFile) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SavedFile_convertedUrl(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ConvertedURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SavedFile_convertedUrl(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SavedFile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SavedFile_convertedFilename(ctx context.Context, field graphql.CollectedField, obj *model.SavedFile) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SavedFile_convertedFilename(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ConvertedFilename, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SavedFile_convertedFilename(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SavedFile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6334,7 +6424,7 @@ func (ec *executionContext) unmarshalInputChangeMessageRequest(ctx context.Conte
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("attachments"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalOUploadingFile2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFileᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6361,22 +6451,22 @@ func (ec *executionContext) unmarshalInputCreateChatRequest(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"avatarURL", "title", "members", "user"}
+	fieldsInOrder := [...]string{"avatar", "title", "members", "user"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "avatarURL":
+		case "avatar":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatarURL"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatar"))
+			data, err := ec.unmarshalOUploadingFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFile(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.AvatarURL = data
+			it.Avatar = data
 		case "title":
 			var err error
 
@@ -6455,7 +6545,7 @@ func (ec *executionContext) unmarshalInputCreateMessageRequest(ctx context.Conte
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("voice"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			data, err := ec.unmarshalOUploadingFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFile(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6464,7 +6554,7 @@ func (ec *executionContext) unmarshalInputCreateMessageRequest(ctx context.Conte
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("attachments"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalOUploadingFile2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFileᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6491,7 +6581,7 @@ func (ec *executionContext) unmarshalInputCreateMessageRequest(ctx context.Conte
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("circle"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			data, err := ec.unmarshalOUploadingFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFile(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6509,22 +6599,22 @@ func (ec *executionContext) unmarshalInputEditChatRequest(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"avatarURL", "title"}
+	fieldsInOrder := [...]string{"avatar", "title"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "avatarURL":
+		case "avatar":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatarURL"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatar"))
+			data, err := ec.unmarshalOUploadingFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFile(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.AvatarURL = data
+			it.Avatar = data
 		case "title":
 			var err error
 
@@ -6534,6 +6624,100 @@ func (ec *executionContext) unmarshalInputEditChatRequest(ctx context.Context, o
 				return it, err
 			}
 			it.Title = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUploadingFile(ctx context.Context, obj interface{}) (model.UploadingFile, error) {
+	var it model.UploadingFile
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"original", "converted"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "original":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("original"))
+			data, err := ec.unmarshalNUploadingFileMeta2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFileMeta(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Original = data
+		case "converted":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("converted"))
+			data, err := ec.unmarshalOUploadingFileMeta2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFileMeta(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Converted = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUploadingFileMeta(ctx context.Context, obj interface{}) (model.UploadingFileMeta, error) {
+	var it model.UploadingFileMeta
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"url", "filename", "signature", "systemFiletype"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "url":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.URL = data
+		case "filename":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filename"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Filename = data
+		case "signature":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("signature"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Signature = data
+		case "systemFiletype":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("systemFiletype"))
+			data, err := ec.unmarshalNSystemFiletypesEnum2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSystemFiletypesEnum(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SystemFiletype = data
 		}
 	}
 
@@ -6564,8 +6748,8 @@ func (ec *executionContext) _Chat(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "avatarURL":
-			out.Values[i] = ec._Chat_avatarURL(ctx, field, obj)
+		case "avatar":
+			out.Values[i] = ec._Chat_avatar(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -6660,55 +6844,6 @@ func (ec *executionContext) _CreateReactionRequest(ctx context.Context, sel ast.
 	return out
 }
 
-var fileObjectResponseImplementors = []string{"FileObjectResponse"}
-
-func (ec *executionContext) _FileObjectResponse(ctx context.Context, sel ast.SelectionSet, obj *model.FileObjectResponse) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, fileObjectResponseImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("FileObjectResponse")
-		case "filename":
-			out.Values[i] = ec._FileObjectResponse_filename(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "contentType":
-			out.Values[i] = ec._FileObjectResponse_contentType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "fileURL":
-			out.Values[i] = ec._FileObjectResponse_fileURL(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var messageImplementors = []string{"Message"}
 
 func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, obj *model.Message) graphql.Marshaler {
@@ -6739,10 +6874,10 @@ func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "content":
 			out.Values[i] = ec._Message_content(ctx, field, obj)
-		case "voiceURL":
-			out.Values[i] = ec._Message_voiceURL(ctx, field, obj)
-		case "circleURL":
-			out.Values[i] = ec._Message_circleURL(ctx, field, obj)
+		case "voice":
+			out.Values[i] = ec._Message_voice(ctx, field, obj)
+		case "circle":
+			out.Values[i] = ec._Message_circle(ctx, field, obj)
 		case "replyToId":
 			out.Values[i] = ec._Message_replyToId(ctx, field, obj)
 		case "readedBy":
@@ -6756,6 +6891,9 @@ func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "attachments":
 			out.Values[i] = ec._Message_attachments(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "mentioned":
 			out.Values[i] = ec._Message_mentioned(ctx, field, obj)
 		case "datetime":
@@ -6975,6 +7113,9 @@ func (ec *executionContext) _PaginatedFiles(ctx context.Context, sel ast.Selecti
 			}
 		case "data":
 			out.Values[i] = ec._PaginatedFiles_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7271,6 +7412,54 @@ func (ec *executionContext) _Reaction(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var savedFileImplementors = []string{"SavedFile"}
+
+func (ec *executionContext) _SavedFile(ctx context.Context, sel ast.SelectionSet, obj *model.SavedFile) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, savedFileImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SavedFile")
+		case "originalUrl":
+			out.Values[i] = ec._SavedFile_originalUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "originalFilename":
+			out.Values[i] = ec._SavedFile_originalFilename(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "convertedUrl":
+			out.Values[i] = ec._SavedFile_convertedUrl(ctx, field, obj)
+		case "convertedFilename":
+			out.Values[i] = ec._SavedFile_convertedFilename(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7689,20 +7878,6 @@ func (ec *executionContext) unmarshalNEditChatRequest2githubᚗcomᚋchackᚑche
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNFileObjectResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponse(ctx context.Context, sel ast.SelectionSet, v model.FileObjectResponse) graphql.Marshaler {
-	return ec._FileObjectResponse(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNFileObjectResponse2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponse(ctx context.Context, sel ast.SelectionSet, v *model.FileObjectResponse) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._FileObjectResponse(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNFileType2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileType(ctx context.Context, v interface{}) (model.FileType, error) {
 	var res model.FileType
 	err := res.UnmarshalGQL(v)
@@ -7766,6 +7941,20 @@ func (ec *executionContext) marshalNPaginatedChats2ᚖgithubᚗcomᚋchackᚑche
 	return ec._PaginatedChats(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNPaginatedFiles2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐPaginatedFiles(ctx context.Context, sel ast.SelectionSet, v model.PaginatedFiles) graphql.Marshaler {
+	return ec._PaginatedFiles(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPaginatedFiles2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐPaginatedFiles(ctx context.Context, sel ast.SelectionSet, v *model.PaginatedFiles) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PaginatedFiles(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPaginatedMessages2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐPaginatedMessages(ctx context.Context, sel ast.SelectionSet, v model.PaginatedMessages) graphql.Marshaler {
 	return ec._PaginatedMessages(ctx, sel, &v)
 }
@@ -7790,6 +7979,60 @@ func (ec *executionContext) marshalNReaction2ᚖgithubᚗcomᚋchackᚑcheckᚋc
 	return ec._Reaction(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNSavedFile2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFileᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SavedFile) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSavedFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFile(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSavedFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFile(ctx context.Context, sel ast.SelectionSet, v *model.SavedFile) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SavedFile(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -7803,6 +8046,26 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNSystemFiletypesEnum2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSystemFiletypesEnum(ctx context.Context, v interface{}) (model.SystemFiletypesEnum, error) {
+	var res model.SystemFiletypesEnum
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSystemFiletypesEnum2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSystemFiletypesEnum(ctx context.Context, sel ast.SelectionSet, v model.SystemFiletypesEnum) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNUploadingFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFile(ctx context.Context, v interface{}) (*model.UploadingFile, error) {
+	res, err := ec.unmarshalInputUploadingFile(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUploadingFileMeta2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFileMeta(ctx context.Context, v interface{}) (*model.UploadingFileMeta, error) {
+	res, err := ec.unmarshalInputUploadingFileMeta(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -8131,53 +8394,6 @@ func (ec *executionContext) marshalOChat2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋch
 	return ret
 }
 
-func (ec *executionContext) marshalOFileObjectResponse2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponseᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.FileObjectResponse) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNFileObjectResponse2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐFileObjectResponse(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalOInt2ᚕintᚄ(ctx context.Context, v interface{}) ([]int, error) {
 	if v == nil {
 		return nil, nil
@@ -8358,42 +8574,11 @@ func (ec *executionContext) marshalOReaction2ᚕᚖgithubᚗcomᚋchackᚑcheck�
 	return ret
 }
 
-func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+func (ec *executionContext) marshalOSavedFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐSavedFile(ctx context.Context, sel ast.SelectionSet, v *model.SavedFile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
+	return ec._SavedFile(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
@@ -8410,6 +8595,42 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOUploadingFile2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFileᚄ(ctx context.Context, v interface{}) ([]*model.UploadingFile, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.UploadingFile, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNUploadingFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFile(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOUploadingFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFile(ctx context.Context, v interface{}) (*model.UploadingFile, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUploadingFile(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOUploadingFileMeta2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐUploadingFileMeta(ctx context.Context, v interface{}) (*model.UploadingFileMeta, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUploadingFileMeta(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

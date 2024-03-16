@@ -35,7 +35,7 @@ type MessagesQueries struct{}
 func (queries *MessagesQueries) GetConcreteById(messageId int, userId int) (*Message, error) {
 	var message Message
 
-	database.DB.Where(
+	database.DB.Preload("Voice").Preload("Circle").Preload("Attachments").Preload("Reactions").Where(
 		"(deleted_for IS NULL OR NOT ? = ANY(deleted_for)) AND id = ?", userId, messageId,
 	).First(&message)
 
@@ -51,7 +51,7 @@ func (queries *MessagesQueries) GetByIds(messageIds []int, userId int) ([]*Messa
 
 	log.Printf("Getting messages with ids %v and for user id %d", messageIds, userId)
 
-	database.DB.Where(
+	database.DB.Preload("Voice").Preload("Circle").Preload("Attachments").Preload("Reactions").Where(
 		"(deleted_for IS NULL OR NOT ? = ANY(deleted_for)) AND id IN ?", userId, messageIds,
 	).Find(&messages)
 
@@ -62,9 +62,9 @@ func (queries *MessagesQueries) GetConcrete(params GetConcreteMessageParams) (*M
 	var message Message
 
 	if params.WithDeleted {
-		database.DB.Preload("Reactions").Where("chat_id = ? AND id = ?", params.ChatId, params.MessageId).First(&message)
+		database.DB.Preload("Voice").Preload("Circle").Preload("Attachments").Preload("Reactions").Where("chat_id = ? AND id = ?", params.ChatId, params.MessageId).First(&message)
 	} else {
-		database.DB.Preload("Reactions").Where(
+		database.DB.Preload("Voice").Preload("Circle").Preload("Attachments").Preload("Reactions").Where(
 			"chat_id = ? AND (deleted_for IS NULL OR NOT ? = ANY(deleted_for)) AND id = ?", params.ChatId, params.UserId, params.MessageId,
 		).First(&message)
 	}
@@ -98,7 +98,7 @@ func (queries *MessagesQueries) GetAllInChat(params GetAllInChatParams) *[]Messa
 		log.Printf("Fetching chat messages with deleted messages. Chat id: %d", params.ChatId)
 		database.DB.Scopes(Paginate(params.Page, params.PerPage)).Preload(
 			"Reactions",
-		).Where(
+		).Preload("Voice").Preload("Circle").Preload("Attachments").Where(
 			"chat_id = ?", params.ChatId,
 		).Order(
 			"created_at DESC",
@@ -107,7 +107,7 @@ func (queries *MessagesQueries) GetAllInChat(params GetAllInChatParams) *[]Messa
 		log.Printf("Fetching chat messages without deleted messages. Chat id: %d. User id: %d", params.ChatId, params.UserId)
 		database.DB.Scopes(Paginate(params.Page, params.PerPage)).Preload(
 			"Reactions",
-		).Where(
+		).Preload("Voice").Preload("Circle").Preload("Attachments").Where(
 			"chat_id = ? AND (deleted_for IS NULL OR NOT ? = ANY(deleted_for))", params.ChatId, params.UserId,
 		).Order(
 			"created_at DESC",
@@ -176,7 +176,7 @@ func (queries *MessagesQueries) GetLastForChatId(chatId int, userId int) *Messag
 		&Message{},
 	).Joins(
 		"JOIN chats ON chats.id = messages.chat_id",
-	).Where(
+	).Preload("Circle").Preload("Voice").Preload("Attachments").Where(
 		"messages.chat_id = ? AND ? = ANY(chats.members)", chatId, userId,
 	).Order(
 		"messages.created_at DESC",
@@ -192,5 +192,6 @@ func (queries *MessagesQueries) GetLastForChatId(chatId int, userId int) *Messag
 }
 
 func (queries *MessagesQueries) Update(message *Message) {
+	database.DB.Model(&Message{ID: message.ID}).Association("Attachments").Clear()
 	database.DB.Save(message)
 }

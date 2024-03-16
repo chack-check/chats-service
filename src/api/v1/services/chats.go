@@ -16,11 +16,8 @@ import (
 
 func setupChatTitleAndAvatar(chat *models.Chat, chatUser *protousers.UserResponse) {
 	chat.Title = fmt.Sprintf("%s %s", chatUser.LastName, chatUser.FirstName)
-	if chatUser.ConvertedAvatarUrl != "" {
-		chat.AvatarURL = chatUser.ConvertedAvatarUrl
-	} else {
-		chat.AvatarURL = chatUser.OriginalAvatarUrl
-	}
+	chat.Avatar.OriginalUrl = chatUser.OriginalAvatarUrl
+	chat.Avatar.ConvertedUrl = chatUser.ConvertedAvatarUrl
 }
 
 func setupUserChatData(chat *models.Chat, currentUserId int) {
@@ -34,7 +31,6 @@ func setupUserChatData(chat *models.Chat, currentUserId int) {
 	anotherUser, err := grpc_client.UsersGrpcClient.GetUserById(int(anotherUserId))
 	if err != nil {
 		chat.Title = "Untitled"
-		chat.AvatarURL = ""
 	} else {
 		setupChatTitleAndAvatar(chat, anotherUser)
 	}
@@ -140,6 +136,9 @@ func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *sc
 func (manager *ChatsManager) createGroupChat(chat *models.Chat, userId int) error {
 	chat.OwnerId = uint(userId)
 	chat.Type = "group"
+	if !slices.Contains(chat.Members, int64(userId)) {
+		chat.Members = append(chat.Members, int64(userId))
+	}
 
 	if err := manager.ChatsQueries.Create(chat); err != nil {
 		return err
@@ -162,7 +161,6 @@ func (manager *ChatsManager) createUserChat(chat *models.Chat, currentUser *prot
 	chat.OwnerId = 0
 	chat.Title = ""
 	chat.Type = "user"
-	chat.AvatarURL = ""
 
 	err := manager.validateUserChatExists(int(currentUser.Id), int(chatUser.Id))
 	if err != nil {

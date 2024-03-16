@@ -9,38 +9,38 @@ import (
 )
 
 type ChangeMessageRequest struct {
-	Content     *string  `json:"content,omitempty"`
-	Attachments []string `json:"attachments,omitempty"`
-	Mentioned   []*int   `json:"mentioned,omitempty"`
+	Content     *string          `json:"content,omitempty"`
+	Attachments []*UploadingFile `json:"attachments,omitempty"`
+	Mentioned   []*int           `json:"mentioned,omitempty"`
 }
 
 type Chat struct {
-	ID         int      `json:"id"`
-	AvatarURL  string   `json:"avatarURL"`
-	Title      string   `json:"title"`
-	Type       ChatType `json:"type"`
-	Members    []int    `json:"members,omitempty"`
-	IsArchived bool     `json:"isArchived"`
-	OwnerID    int      `json:"ownerId"`
-	Admins     []int    `json:"admins,omitempty"`
+	ID         int        `json:"id"`
+	Avatar     *SavedFile `json:"avatar"`
+	Title      string     `json:"title"`
+	Type       ChatType   `json:"type"`
+	Members    []int      `json:"members,omitempty"`
+	IsArchived bool       `json:"isArchived"`
+	OwnerID    int        `json:"ownerId"`
+	Admins     []int      `json:"admins,omitempty"`
 }
 
 type CreateChatRequest struct {
-	AvatarURL *string `json:"avatarURL,omitempty"`
-	Title     *string `json:"title,omitempty"`
-	Members   []int   `json:"members,omitempty"`
-	User      *int    `json:"user,omitempty"`
+	Avatar  *UploadingFile `json:"avatar,omitempty"`
+	Title   *string        `json:"title,omitempty"`
+	Members []int          `json:"members,omitempty"`
+	User    *int           `json:"user,omitempty"`
 }
 
 type CreateMessageRequest struct {
-	ChatID      int         `json:"chatId"`
-	Type        MessageType `json:"type"`
-	Content     *string     `json:"content,omitempty"`
-	Voice       *string     `json:"voice,omitempty"`
-	Attachments []string    `json:"attachments,omitempty"`
-	ReplyToID   *int        `json:"replyToId,omitempty"`
-	Mentioned   []int       `json:"mentioned,omitempty"`
-	Circle      *string     `json:"circle,omitempty"`
+	ChatID      int              `json:"chatId"`
+	Type        MessageType      `json:"type"`
+	Content     *string          `json:"content,omitempty"`
+	Voice       *UploadingFile   `json:"voice,omitempty"`
+	Attachments []*UploadingFile `json:"attachments,omitempty"`
+	ReplyToID   *int             `json:"replyToId,omitempty"`
+	Mentioned   []int            `json:"mentioned,omitempty"`
+	Circle      *UploadingFile   `json:"circle,omitempty"`
 }
 
 type CreateReactionRequest struct {
@@ -49,31 +49,25 @@ type CreateReactionRequest struct {
 }
 
 type EditChatRequest struct {
-	AvatarURL *string `json:"avatarURL,omitempty"`
-	Title     *string `json:"title,omitempty"`
-}
-
-type FileObjectResponse struct {
-	Filename    string `json:"filename"`
-	ContentType string `json:"contentType"`
-	FileURL     string `json:"fileURL"`
+	Avatar *UploadingFile `json:"avatar,omitempty"`
+	Title  *string        `json:"title,omitempty"`
 }
 
 type Message struct {
-	ID          int                   `json:"id"`
-	Type        MessageType           `json:"type"`
-	SenderID    *int                  `json:"senderId,omitempty"`
-	ChatID      int                   `json:"chatId"`
-	Content     *string               `json:"content,omitempty"`
-	VoiceURL    *string               `json:"voiceURL,omitempty"`
-	CircleURL   *string               `json:"circleURL,omitempty"`
-	ReplyToID   *int                  `json:"replyToId,omitempty"`
-	ReadedBy    []int                 `json:"readedBy,omitempty"`
-	Reactions   []*Reaction           `json:"reactions,omitempty"`
-	Datetine    string                `json:"datetine"`
-	Attachments []*FileObjectResponse `json:"attachments,omitempty"`
-	Mentioned   []int                 `json:"mentioned,omitempty"`
-	Datetime    string                `json:"datetime"`
+	ID          int          `json:"id"`
+	Type        MessageType  `json:"type"`
+	SenderID    *int         `json:"senderId,omitempty"`
+	ChatID      int          `json:"chatId"`
+	Content     *string      `json:"content,omitempty"`
+	Voice       *SavedFile   `json:"voice,omitempty"`
+	Circle      *SavedFile   `json:"circle,omitempty"`
+	ReplyToID   *int         `json:"replyToId,omitempty"`
+	ReadedBy    []int        `json:"readedBy,omitempty"`
+	Reactions   []*Reaction  `json:"reactions,omitempty"`
+	Datetine    string       `json:"datetine"`
+	Attachments []*SavedFile `json:"attachments"`
+	Mentioned   []int        `json:"mentioned,omitempty"`
+	Datetime    string       `json:"datetime"`
 }
 
 type PaginatedChats struct {
@@ -84,10 +78,10 @@ type PaginatedChats struct {
 }
 
 type PaginatedFiles struct {
-	Page     int                   `json:"page"`
-	NumPages int                   `json:"numPages"`
-	PerPage  int                   `json:"perPage"`
-	Data     []*FileObjectResponse `json:"data,omitempty"`
+	Page     int          `json:"page"`
+	NumPages int          `json:"numPages"`
+	PerPage  int          `json:"perPage"`
+	Data     []*SavedFile `json:"data"`
 }
 
 type PaginatedMessages struct {
@@ -100,6 +94,25 @@ type PaginatedMessages struct {
 type Reaction struct {
 	Content string `json:"content"`
 	UserID  int    `json:"userId"`
+}
+
+type SavedFile struct {
+	OriginalURL       string  `json:"originalUrl"`
+	OriginalFilename  string  `json:"originalFilename"`
+	ConvertedURL      *string `json:"convertedUrl,omitempty"`
+	ConvertedFilename *string `json:"convertedFilename,omitempty"`
+}
+
+type UploadingFile struct {
+	Original  *UploadingFileMeta `json:"original"`
+	Converted *UploadingFileMeta `json:"converted,omitempty"`
+}
+
+type UploadingFileMeta struct {
+	URL            string              `json:"url"`
+	Filename       string              `json:"filename"`
+	Signature      string              `json:"signature"`
+	SystemFiletype SystemFiletypesEnum `json:"systemFiletype"`
 }
 
 type ChatType string
@@ -277,5 +290,50 @@ func (e *MessageType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e MessageType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SystemFiletypesEnum string
+
+const (
+	SystemFiletypesEnumAvatar     SystemFiletypesEnum = "avatar"
+	SystemFiletypesEnumFileInChat SystemFiletypesEnum = "file_in_chat"
+	SystemFiletypesEnumVoice      SystemFiletypesEnum = "voice"
+	SystemFiletypesEnumCircle     SystemFiletypesEnum = "circle"
+)
+
+var AllSystemFiletypesEnum = []SystemFiletypesEnum{
+	SystemFiletypesEnumAvatar,
+	SystemFiletypesEnumFileInChat,
+	SystemFiletypesEnumVoice,
+	SystemFiletypesEnumCircle,
+}
+
+func (e SystemFiletypesEnum) IsValid() bool {
+	switch e {
+	case SystemFiletypesEnumAvatar, SystemFiletypesEnumFileInChat, SystemFiletypesEnumVoice, SystemFiletypesEnumCircle:
+		return true
+	}
+	return false
+}
+
+func (e SystemFiletypesEnum) String() string {
+	return string(e)
+}
+
+func (e *SystemFiletypesEnum) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SystemFiletypesEnum(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SystemFiletypesEnum", str)
+	}
+	return nil
+}
+
+func (e SystemFiletypesEnum) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

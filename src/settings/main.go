@@ -27,6 +27,7 @@ type BaseSettings struct {
 	SECRET_KEY                         string
 	BASE_DIR                           string
 	TEST_DATA_DIR                      string
+	FILES_SIGNATURE_KEY                string
 }
 
 var Settings *BaseSettings = NewSettings()
@@ -120,6 +121,11 @@ func NewSettings() *BaseSettings {
 		allowOrigins = "*"
 	}
 
+	files_signature_key := os.Getenv("FILES_SIGNATURE_KEY")
+	if files_signature_key == "" {
+		panic("You need to specify FILES_SIGNATURE_KEY environment variable")
+	}
+
 	return &BaseSettings{
 		PORT:                               port,
 		USERS_GRPC_HOST:                    users_grpc_host,
@@ -139,5 +145,6 @@ func NewSettings() *BaseSettings {
 		APP_ALLOW_ORIGINS:                  allowOrigins,
 		APP_ENVIRONMENT:                    environment,
 		SECRET_KEY:                         secretKey,
+		FILES_SIGNATURE_KEY:                files_signature_key,
 	}
 }
