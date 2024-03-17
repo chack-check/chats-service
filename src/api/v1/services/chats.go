@@ -1,34 +1,47 @@
 package services
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"slices"
 
-	"github.com/chack-check/chats-service/api/v1/models"
+	"github.com/chack-check/chats-service/api/v1/dtos"
+	"github.com/chack-check/chats-service/api/v1/repositories"
 	"github.com/chack-check/chats-service/api/v1/schemas"
+	"github.com/chack-check/chats-service/api/v1/utils"
 	"github.com/chack-check/chats-service/grpc_client"
 	"github.com/chack-check/chats-service/protousers"
 	"github.com/chack-check/chats-service/rabbit"
+	"github.com/chack-check/chats-service/redisdb"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 )
 
-func setupChatTitleAndAvatar(chat *models.Chat, chatUser *protousers.UserResponse) {
+func setupChatTitleAndAvatar(chat *dtos.ChatDto, chatUser *protousers.UserResponse) {
+	var chat_avatar_converted_url *string
+	if chatUser.ConvertedAvatarUrl != "" {
+		chat_avatar_converted_url = &chatUser.ConvertedAvatarUrl
+	} else {
+		chat_avatar_converted_url = nil
+	}
+
 	chat.Title = fmt.Sprintf("%s %s", chatUser.LastName, chatUser.FirstName)
 	chat.Avatar.OriginalUrl = chatUser.OriginalAvatarUrl
-	chat.Avatar.ConvertedUrl = chatUser.ConvertedAvatarUrl
+	chat.Avatar.ConvertedUrl = chat_avatar_converted_url
 }
 
-func setupUserChatData(chat *models.Chat, currentUserId int) {
-	var anotherUserId int64
+func setupUserChatData(chat *dtos.ChatDto, currentUserId int) {
+	var anotherUserId int
 	for _, member := range chat.Members {
-		if member != int64(currentUserId) {
+		if member != int(currentUserId) {
 			anotherUserId = member
 		}
 	}
 
-	anotherUser, err := grpc_client.UsersGrpcClient.GetUserById(int(anotherUserId))
+	anotherUser, err := grpc_client.UsersGrpcClient.GetUserById(anotherUserId)
 	if err != nil {
 		chat.Title = "Untitled"
 	} else {
@@ -36,7 +49,7 @@ func setupUserChatData(chat *models.Chat, currentUserId int) {
 	}
 }
 
-func setupUserManyChatsData(chats []*models.Chat, currentUserId int) {
+func setupUserManyChatsData(chats []*dtos.ChatDto, currentUserId int) {
 	var anotherUsersIds []int
 	for _, chat := range chats {
 		if chat.Type != "user" {
@@ -44,7 +57,7 @@ func setupUserManyChatsData(chats []*models.Chat, currentUserId int) {
 		}
 
 		for _, member := range chat.Members {
-			if member != int64(currentUserId) && !slices.Contains(anotherUsersIds, int(member)) {
+			if member != currentUserId && !slices.Contains(anotherUsersIds, int(member)) {
 				anotherUsersIds = append(anotherUsersIds, int(member))
 			}
 		}
@@ -63,7 +76,7 @@ func setupUserManyChatsData(chats []*models.Chat, currentUserId int) {
 		var anotherUser *protousers.UserResponse
 
 		for _, member := range chat.Members {
-			if member == int64(currentUserId) {
+			if member == currentUserId {
 				continue
 			}
 
@@ -79,17 +92,17 @@ func setupUserManyChatsData(chats []*models.Chat, currentUserId int) {
 }
 
 type ChatsManager struct {
-	ChatsQueries *models.ChatsQueries
+	ChatsRepository *repositories.ChatsRepository
 }
 
-func (manager *ChatsManager) GetConcrete(chatID uint, token *jwt.Token) (*models.Chat, error) {
+func (manager *ChatsManager) GetConcrete(chatID uint, token *jwt.Token) (*dtos.ChatDto, error) {
 	tokenSubject, err := GetTokenSubject(token)
 
 	if err != nil {
 		return nil, err
 	}
 
-	chat, err := manager.ChatsQueries.GetWithMember(chatID, uint(tokenSubject.UserId))
+	chat, err := manager.ChatsRepository.GetWithMember(chatID, uint(tokenSubject.UserId))
 	if err != nil {
 		return nil, err
 	}
@@ -98,49 +111,53 @@ func (manager *ChatsManager) GetConcrete(chatID uint, token *jwt.Token) (*models
 		setupUserChatData(chat, tokenSubject.UserId)
 	}
 
+	manager.setupChatActions(chat)
+
 	return chat, nil
 }
 
-func (manager *ChatsManager) GetByIds(chatsIds []int, token *jwt.Token) ([]*models.Chat, error) {
+func (manager *ChatsManager) GetByIds(chatsIds []int, token *jwt.Token) ([]*dtos.ChatDto, error) {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil, err
 	}
 
-	chats, err := manager.ChatsQueries.GetByIds(chatsIds, tokenSubject.UserId)
+	chats, err := manager.ChatsRepository.GetByIds(chatsIds, tokenSubject.UserId)
 	if err != nil {
 		return nil, err
 	}
 
 	setupUserManyChatsData(chats, tokenSubject.UserId)
+	manager.setupManyChatsActions(chats)
 
 	return chats, nil
 }
 
-func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *schemas.PaginatedResponse[*models.Chat] {
+func (manager *ChatsManager) GetAll(token *jwt.Token, page int, perPage int) *schemas.PaginatedResponse[*dtos.ChatDto] {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil
 	}
 
-	count := manager.ChatsQueries.GetAllWithMemberCount(uint(tokenSubject.UserId))
+	count := manager.ChatsRepository.GetAllWithMemberCount(uint(tokenSubject.UserId))
 	countValue := *count
-	chats := manager.ChatsQueries.GetAllWithMember(uint(tokenSubject.UserId), page, perPage)
+	chats := manager.ChatsRepository.GetAllWithMember(uint(tokenSubject.UserId), page, perPage)
 
 	setupUserManyChatsData(chats, tokenSubject.UserId)
+	manager.setupManyChatsActions(chats)
 
 	paginatedResponse := schemas.NewPaginatedResponse(page, perPage, int(countValue), chats)
 	return &paginatedResponse
 }
 
-func (manager *ChatsManager) createGroupChat(chat *models.Chat, userId int) error {
-	chat.OwnerId = uint(userId)
+func (manager *ChatsManager) createGroupChat(chat *dtos.ChatDto, userId int) error {
+	chat.OwnerId = userId
 	chat.Type = "group"
-	if !slices.Contains(chat.Members, int64(userId)) {
-		chat.Members = append(chat.Members, int64(userId))
+	if !slices.Contains(chat.Members, userId) {
+		chat.Members = append(chat.Members, userId)
 	}
 
-	if err := manager.ChatsQueries.Create(chat); err != nil {
+	if err := manager.ChatsRepository.Create(chat); err != nil {
 		return err
 	}
 
@@ -148,7 +165,7 @@ func (manager *ChatsManager) createGroupChat(chat *models.Chat, userId int) erro
 }
 
 func (manager *ChatsManager) validateUserChatExists(userId int, anotherUserId int) error {
-	alreadyExists := manager.ChatsQueries.GetExistingWithUser(uint(userId), uint(anotherUserId))
+	alreadyExists := manager.ChatsRepository.GetExistingWithUser(uint(userId), uint(anotherUserId))
 	if alreadyExists {
 		return fmt.Errorf("you already have chat with this user")
 	}
@@ -156,8 +173,8 @@ func (manager *ChatsManager) validateUserChatExists(userId int, anotherUserId in
 	return nil
 }
 
-func (manager *ChatsManager) createUserChat(chat *models.Chat, currentUser *protousers.UserResponse, chatUser *protousers.UserResponse) error {
-	chat.Members = []int64{int64(currentUser.Id), int64(chatUser.Id)}
+func (manager *ChatsManager) createUserChat(chat *dtos.ChatDto, currentUser *protousers.UserResponse, chatUser *protousers.UserResponse) error {
+	chat.Members = []int{int(currentUser.Id), int(chatUser.Id)}
 	chat.OwnerId = 0
 	chat.Title = ""
 	chat.Type = "user"
@@ -169,7 +186,7 @@ func (manager *ChatsManager) createUserChat(chat *models.Chat, currentUser *prot
 
 	log.Printf("Creating chat: %v", chat)
 
-	if err := manager.ChatsQueries.Create(chat); err != nil {
+	if err := manager.ChatsRepository.Create(chat); err != nil {
 		return err
 	}
 
@@ -177,7 +194,43 @@ func (manager *ChatsManager) createUserChat(chat *models.Chat, currentUser *prot
 	return nil
 }
 
-func (manager *ChatsManager) sendChatEvent(chat *models.Chat, eventType string) error {
+func (manager *ChatsManager) setupChatActions(chat *dtos.ChatDto) error {
+	ctx := context.Background()
+	chatAllActions, err := redisdb.RedisConnection.HGetAll(ctx, manager.getChatActionsKey(chat.Id)).Result()
+	if err != nil {
+		log.Printf("%v", err)
+		return fmt.Errorf("error when getting chat actions")
+	}
+	var chat_actions []dtos.ChatActionDto
+	for key, value := range chatAllActions {
+		var action_users_struct []dtos.ActionUserDto
+		err = json.Unmarshal([]byte(value), &action_users_struct)
+		if err != nil {
+			log.Printf("%v", err)
+			return fmt.Errorf("error when parsing action from redis")
+		}
+
+		chat_actions = append(chat_actions, dtos.ChatActionDto{
+			Action:      key,
+			ActionUsers: action_users_struct,
+		})
+	}
+
+	chat.Actions = &chat_actions
+	return nil
+}
+
+func (manager *ChatsManager) setupManyChatsActions(chats []*dtos.ChatDto) error {
+	for _, chat := range chats {
+		if err := manager.setupChatActions(chat); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (manager *ChatsManager) sendChatEvent(chat *dtos.ChatDto, eventType string) error {
 	var included_users []int
 	for _, user := range chat.Members {
 		included_users = append(included_users, int(user))
@@ -195,34 +248,10 @@ func (manager *ChatsManager) sendChatEvent(chat *models.Chat, eventType string) 
 		log.Printf("Error when publishing event with type %s in queue: %v", eventType, err)
 		return fmt.Errorf("error sending event with type %s", eventType)
 	}
-
 	return nil
 }
 
-func (manager *ChatsManager) Search(query string, token *jwt.Token, page int, perPage int) (*schemas.PaginatedResponse[*models.Chat], error) {
-	tokenSubject, err := GetTokenSubject(token)
-	if err != nil {
-		return nil, err
-	}
-
-	if page < 1 {
-		page = 1
-	}
-
-	if perPage < 1 {
-		perPage = 1
-	}
-
-	chatsCount := manager.ChatsQueries.SearchCount(uint(tokenSubject.UserId), query, page, perPage)
-	chats := manager.ChatsQueries.Search(uint(tokenSubject.UserId), query, page, perPage)
-
-	setupUserManyChatsData(chats, tokenSubject.UserId)
-
-	response := schemas.NewPaginatedResponse(page, perPage, int(chatsCount), chats)
-	return &response, nil
-}
-
-func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUserId uint) error {
+func (manager *ChatsManager) Create(chat *dtos.ChatDto, token *jwt.Token, chatUserId uint) error {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return err
@@ -243,8 +272,8 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 	}
 
 	members := pq.Int32Array{int32(tokenSubject.UserId), int32(chatUserId)}
-	if chatId := manager.ChatsQueries.GetDeletedChatId(members); chatId > 0 {
-		manager.ChatsQueries.RestoreChat(chatId)
+	if chatId := manager.ChatsRepository.GetDeletedChatId(members); chatId > 0 {
+		manager.ChatsRepository.RestoreChat(chatId)
 		if err := manager.sendChatEvent(chat, "chat_created"); err != nil {
 			return err
 		}
@@ -274,13 +303,111 @@ func (manager *ChatsManager) Create(chat *models.Chat, token *jwt.Token, chatUse
 	return nil
 }
 
-func (manager *ChatsManager) Delete(chat *models.Chat) {
-	manager.ChatsQueries.Delete(chat)
+func (manager *ChatsManager) Delete(chat *dtos.ChatDto) {
+	manager.ChatsRepository.Delete(chat)
 	manager.sendChatEvent(chat, "chat_deleted")
+}
+
+func (manager *ChatsManager) getChatActionsKey(chatId int) string {
+	return fmt.Sprintf("chat_actions:%d", chatId)
+}
+
+func (manager *ChatsManager) getChatActionUsers(chatId int, actionType string) ([]dtos.ActionUserDto, error) {
+	ctx := context.Background()
+	action_users, err := redisdb.RedisConnection.HGet(ctx, manager.getChatActionsKey(int(chatId)), actionType).Result()
+	if err != nil && err != redis.Nil {
+		log.Printf("%v", err)
+		return nil, fmt.Errorf("error getting action from redis")
+	} else if err == redis.Nil {
+		return []dtos.ActionUserDto{}, nil
+	}
+
+	var action_users_struct []dtos.ActionUserDto
+	err = json.Unmarshal([]byte(action_users), &action_users_struct)
+	if err != nil {
+		log.Printf("%v", err)
+		return nil, fmt.Errorf("error when parsing action from redis")
+	}
+
+	return action_users_struct, nil
+}
+
+func (manager *ChatsManager) setupNewChatActionUsers(actionUsers []dtos.ActionUserDto, user *protousers.UserResponse, start bool) []dtos.ActionUserDto {
+	user_full_name := utils.GetUserFullName(user.FirstName, user.LastName, &user.MiddleName)
+	var new_action_users_struct []dtos.ActionUserDto
+	if len(actionUsers) == 0 && start {
+		new_action_users_struct = append(new_action_users_struct, dtos.ActionUserDto{Id: int(user.Id), Name: user_full_name})
+		return new_action_users_struct
+	}
+
+	for _, action_user := range actionUsers {
+		if action_user.Id != int(user.Id) {
+			new_action_users_struct = append(new_action_users_struct, dtos.ActionUserDto{Id: int(user.Id), Name: user_full_name})
+			continue
+		}
+
+		if start {
+			new_action_users_struct = append(new_action_users_struct, dtos.ActionUserDto{Id: int(user.Id), Name: user_full_name})
+		} else {
+			continue
+		}
+	}
+
+	return new_action_users_struct
+}
+
+func (manager *ChatsManager) saveNewChatActionUsers(chatId int, actionType string, actionUsers []dtos.ActionUserDto) error {
+	ctx := context.Background()
+	if len(actionUsers) == 0 {
+		redisdb.RedisConnection.HDel(ctx, manager.getChatActionsKey(chatId), actionType)
+		return nil
+	}
+
+	encoded_users, err := json.Marshal(actionUsers)
+	if err != nil {
+		log.Printf("%v", err)
+		return fmt.Errorf("error when saving new chat action users")
+	}
+
+	err = redisdb.RedisConnection.HSet(ctx, manager.getChatActionsKey(chatId), []string{actionType, string(encoded_users)}).Err()
+	if err != nil {
+		log.Printf("%v", err)
+		return fmt.Errorf("error when saving new chat action users")
+	}
+
+	return nil
+}
+
+func (manager *ChatsManager) HandleChatUserAction(token *jwt.Token, chat *dtos.ChatDto, actionType string, start bool) error {
+	tokenSubject, err := GetTokenSubject(token)
+	if err != nil {
+		return err
+	}
+
+	user, err := grpc_client.UsersGrpcClient.GetUserById(tokenSubject.UserId)
+	if err != nil {
+		log.Printf("%v", err)
+		return fmt.Errorf("error when getting token user")
+	}
+
+	action_users_struct, err := manager.getChatActionUsers(int(chat.Id), actionType)
+	if err != nil {
+		return err
+	}
+
+	new_action_users_struct := manager.setupNewChatActionUsers(action_users_struct, user, start)
+	err = manager.saveNewChatActionUsers(int(chat.Id), actionType, new_action_users_struct)
+	if err != nil {
+		return err
+	}
+
+	manager.setupChatActions(chat)
+	manager.sendChatEvent(chat, "chat_user_action")
+	return nil
 }
 
 func NewChatsManager() *ChatsManager {
 	return &ChatsManager{
-		ChatsQueries: &models.ChatsQueries{},
+		ChatsRepository: &repositories.ChatsRepository{},
 	}
 }

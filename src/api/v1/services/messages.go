@@ -5,11 +5,13 @@ import (
 	"log"
 	"slices"
 
+	"github.com/chack-check/chats-service/api/v1/dtos"
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/models"
+	"github.com/chack-check/chats-service/api/v1/repositories"
 	"github.com/chack-check/chats-service/api/v1/schemas"
 	"github.com/chack-check/chats-service/api/v1/utils"
-	"github.com/chack-check/chats-service/factories"
+	"github.com/chack-check/chats-service/generic_factories"
 	"github.com/chack-check/chats-service/rabbit"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lib/pq"
@@ -24,7 +26,7 @@ const (
 
 type MessagesManager struct {
 	MessagesQueries *models.MessagesQueries
-	ChatsQueries    *models.ChatsQueries
+	ChatsRepository *repositories.ChatsRepository
 }
 
 func (manager *MessagesManager) GetConcrete(messageId int, token *jwt.Token) (*models.Message, error) {
@@ -82,7 +84,7 @@ func (manager *MessagesManager) createTextMessage(message *models.Message, messa
 	if len(messageData.Attachments) != 0 {
 		for _, attachment := range messageData.Attachments {
 			utils.ValidateUploadingFile(*attachment, "file_in_chat")
-			saved_file := factories.UploadingFileToDbFile(*attachment)
+			saved_file := generic_factories.UploadingFileToDbFile(*attachment)
 			message_attachments = append(message_attachments, saved_file)
 		}
 	}
@@ -113,7 +115,7 @@ func (manager *MessagesManager) createVoiceMessage(message *models.Message, mess
 		return fmt.Errorf("you can't create voice message without voice field")
 	}
 
-	message.Voice = factories.UploadingFileToDbFile(*messageData.Voice)
+	message.Voice = generic_factories.UploadingFileToDbFile(*messageData.Voice)
 
 	if messageData.ReplyToID != nil && *messageData.ReplyToID != 0 {
 		message.ReplyToID = uint(*messageData.ReplyToID)
@@ -132,7 +134,7 @@ func (manager *MessagesManager) createCircleMessage(message *models.Message, mes
 		return fmt.Errorf("you can't create circle message without circle field")
 	}
 
-	message.Circle = factories.UploadingFileToDbFile(*messageData.Circle)
+	message.Circle = generic_factories.UploadingFileToDbFile(*messageData.Circle)
 
 	if messageData.ReplyToID != nil && *messageData.ReplyToID != 0 {
 		message.ReplyToID = uint(*messageData.ReplyToID)
@@ -141,7 +143,7 @@ func (manager *MessagesManager) createCircleMessage(message *models.Message, mes
 	return nil
 }
 
-func (manager *MessagesManager) sendMessageEvent(message *models.Message, chat *models.Chat, eventType string, includedUsers *[]int) error {
+func (manager *MessagesManager) sendMessageEvent(message *models.Message, chat *dtos.ChatDto, eventType string, includedUsers *[]int) error {
 	if includedUsers == nil {
 		includedUsers = &([]int{})
 		for _, member := range chat.Members {
@@ -164,7 +166,7 @@ func (manager *MessagesManager) sendMessageEvent(message *models.Message, chat *
 	return nil
 }
 
-func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRequest, chat *models.Chat, token *jwt.Token) (*models.Message, error) {
+func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRequest, chat *dtos.ChatDto, token *jwt.Token) (*models.Message, error) {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil, err
@@ -187,7 +189,7 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 	}
 
 	message := &models.Message{
-		ChatId:   chat.ID,
+		ChatId:   uint(chat.Id),
 		Type:     messageData.Type.String(),
 		SenderId: uint(tokenSubject.UserId),
 	}
@@ -214,13 +216,13 @@ func (manager *MessagesManager) CreateMessage(messageData *model.CreateMessageRe
 	return message, nil
 }
 
-func (manager *MessagesManager) Read(chat *models.Chat, messageId uint, token *jwt.Token) (*models.Message, error) {
+func (manager *MessagesManager) Read(chat *dtos.ChatDto, messageId uint, token *jwt.Token) (*models.Message, error) {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil, err
 	}
 
-	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chat.ID, MessageId: messageId, UserId: uint(tokenSubject.UserId)})
+	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: uint(chat.Id), MessageId: messageId, UserId: uint(tokenSubject.UserId)})
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +240,7 @@ func (manager *MessagesManager) ReactMessage(token *jwt.Token, chatId uint, mess
 		return nil, err
 	}
 
-	chat, err := manager.ChatsQueries.GetWithMember(uint(chatId), uint(tokenSubject.UserId))
+	chat, err := manager.ChatsRepository.GetWithMember(uint(chatId), uint(tokenSubject.UserId))
 	if err != nil {
 		return nil, err
 	}
@@ -258,8 +260,8 @@ func (manager *MessagesManager) ReactMessage(token *jwt.Token, chatId uint, mess
 	return message, nil
 }
 
-func (manager *MessagesManager) validateCanUserDeleteMessage(userId uint, chat *models.Chat, message *models.Message) bool {
-	return slices.Contains(chat.Members, int64(userId))
+func (manager *MessagesManager) validateCanUserDeleteMessage(userId uint, chat *dtos.ChatDto, message *models.Message) bool {
+	return slices.Contains(chat.Members, int(userId))
 }
 
 func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, messageId uint, deleteFor DeleteForOptions) error {
@@ -268,7 +270,7 @@ func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, mes
 		return err
 	}
 
-	chat, err := manager.ChatsQueries.GetWithMember(uint(tokenSubject.UserId), chatId)
+	chat, err := manager.ChatsRepository.GetWithMember(uint(tokenSubject.UserId), chatId)
 	if err != nil {
 		return err
 	}
@@ -307,18 +309,18 @@ func (manager *MessagesManager) DeleteReaction(token *jwt.Token, chatId int, mes
 		return err
 	}
 
-	chat, err := manager.ChatsQueries.GetWithMember(uint(tokenSubject.UserId), uint(chatId))
+	chat, err := manager.ChatsRepository.GetWithMember(uint(tokenSubject.UserId), uint(chatId))
 	if err != nil {
 		return err
 	}
 
-	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chat.ID, MessageId: uint(messageId), UserId: uint(tokenSubject.UserId)})
+	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: uint(chat.Id), MessageId: uint(messageId), UserId: uint(tokenSubject.UserId)})
 	if err != nil {
 		return err
 	}
 
 	manager.MessagesQueries.DeleteReaction(tokenSubject.UserId, message)
-	updatedMessage, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chat.ID, MessageId: uint(messageId), UserId: uint(tokenSubject.UserId)})
+	updatedMessage, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: uint(chat.Id), MessageId: uint(messageId), UserId: uint(tokenSubject.UserId)})
 	if err != nil {
 		return err
 	}
@@ -327,13 +329,13 @@ func (manager *MessagesManager) DeleteReaction(token *jwt.Token, chatId int, mes
 	return nil
 }
 
-func (manager *MessagesManager) Update(chat *models.Chat, messageId uint, updateData model.ChangeMessageRequest, token *jwt.Token) (*models.Message, error) {
+func (manager *MessagesManager) Update(chat *dtos.ChatDto, messageId uint, updateData model.ChangeMessageRequest, token *jwt.Token) (*models.Message, error) {
 	tokenSubject, err := GetTokenSubject(token)
 	if err != nil {
 		return nil, err
 	}
 
-	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: chat.ID, MessageId: messageId, UserId: uint(tokenSubject.UserId)})
+	message, err := manager.MessagesQueries.GetConcrete(models.GetConcreteMessageParams{ChatId: uint(chat.Id), MessageId: messageId, UserId: uint(tokenSubject.UserId)})
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +348,7 @@ func (manager *MessagesManager) Update(chat *models.Chat, messageId uint, update
 			return nil, err
 		}
 
-		saved_file := factories.UploadingFileToDbFile(*attachment)
+		saved_file := generic_factories.UploadingFileToDbFile(*attachment)
 		attachments = append(attachments, saved_file)
 	}
 	message.Attachments = attachments
@@ -380,6 +382,6 @@ func (manager *MessagesManager) GetLastByChatIds(chatIds []int, userId int) []*m
 func NewMessagesManager() *MessagesManager {
 	return &MessagesManager{
 		MessagesQueries: &models.MessagesQueries{},
-		ChatsQueries:    &models.ChatsQueries{},
+		ChatsRepository: &repositories.ChatsRepository{},
 	}
 }

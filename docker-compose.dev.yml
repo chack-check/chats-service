@@ -1,6 +1,10 @@
 version: "3"
 
 services:
+  chats-redis:
+    image: redis
+    networks:
+      - chack-check-network
   chats-db:
     image: postgres
     env_file:

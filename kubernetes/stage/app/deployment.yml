@@ -76,3 +76,9 @@ spec:
                 secretKeyRef:
                   name: files-service-credentials
                   key: signature_key
+
+            - name: APP_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: chats-service-credentials
+                  key: redis_url

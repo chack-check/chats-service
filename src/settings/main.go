@@ -12,6 +12,7 @@ type BaseSettings struct {
 	GRPC_SERVER_PORT                   int
 	USERS_GRPC_HOST                    string
 	USERS_GRPC_PORT                    int
+	APP_REDIS_URL                      string
 	APP_RABBIT_USER                    string
 	APP_RABBIT_PASSWORD                string
 	APP_RABBIT_HOST                    string
@@ -126,6 +127,11 @@ func NewSettings() *BaseSettings {
 		panic("You need to specify FILES_SIGNATURE_KEY environment variable")
 	}
 
+	app_redis_url := os.Getenv("APP_REDIS_URL")
+	if app_redis_url == "" {
+		panic("You need to specify APP_REDIS_URL environment variable")
+	}
+
 	return &BaseSettings{
 		PORT:                               port,
 		USERS_GRPC_HOST:                    users_grpc_host,
@@ -144,6 +150,7 @@ func NewSettings() *BaseSettings {
 		APP_DATABASE_NAME:                  db_name,
 		APP_ALLOW_ORIGINS:                  allowOrigins,
 		APP_ENVIRONMENT:                    environment,
+		APP_REDIS_URL:                      app_redis_url,
 		SECRET_KEY:                         secretKey,
 		FILES_SIGNATURE_KEY:                files_signature_key,
 	}

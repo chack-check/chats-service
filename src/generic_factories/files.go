@@ -1,4 +1,4 @@
-package factories
+package generic_factories
 
 import (
 	"github.com/chack-check/chats-service/api/v1/graph/model"

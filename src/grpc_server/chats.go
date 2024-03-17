@@ -7,9 +7,9 @@ import (
 	"net"
 	"slices"
 
-	"github.com/chack-check/chats-service/api/v1/models"
+	"github.com/chack-check/chats-service/api/v1/dtos"
 	"github.com/chack-check/chats-service/api/v1/services"
-	"github.com/chack-check/chats-service/factories"
+	"github.com/chack-check/chats-service/generic_factories"
 	pb "github.com/chack-check/chats-service/protochats"
 	"google.golang.org/grpc"
 )
@@ -31,7 +31,7 @@ func (s ChatsServerImplementation) GetChatById(ctx context.Context, request *pb.
 		return nil, err
 	}
 
-	chats_factory := factories.ChatsFactory{}
+	chats_factory := generic_factories.ChatsFactory{}
 	chat_response := chats_factory.SchemaToProto(chat)
 	return chat_response, nil
 }
@@ -55,7 +55,7 @@ func (s ChatsServerImplementation) GetMessageById(ctx context.Context, request *
 		return nil, err
 	}
 
-	messages_factory := factories.MessagesFactory{}
+	messages_factory := generic_factories.MessagesFactory{}
 	message_response := messages_factory.SchemaToProto(message, chat)
 	return message_response, nil
 }
@@ -101,12 +101,12 @@ func (s ChatsServerImplementation) GetMessagesByIds(ctx context.Context, request
 		return nil, fmt.Errorf("empty chats array")
 	}
 
-	messages_factory := factories.MessagesFactory{}
+	messages_factory := generic_factories.MessagesFactory{}
 	var messages_response []*pb.MessageResponse
 	for _, message := range messages {
-		var message_chat *models.Chat
+		var message_chat *dtos.ChatDto
 		for _, chat := range chats {
-			if chat.ID == message.ChatId {
+			if chat.Id == int(message.ChatId) {
 				message_chat = chat
 			}
 		}
@@ -136,7 +136,7 @@ func (s ChatsServerImplementation) GetChatsByIds(ctx context.Context, request *p
 		return nil, err
 	}
 
-	chats_factory := factories.ChatsFactory{}
+	chats_factory := generic_factories.ChatsFactory{}
 	var chats_response []*pb.ChatResponse
 	for _, chat := range chats {
 		chats_response = append(chats_response, chats_factory.SchemaToProto(chat))

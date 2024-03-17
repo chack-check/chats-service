@@ -27,6 +27,15 @@ enum SystemFiletypesEnum {
   circle
 }
 
+enum ActionTypes {
+  writing
+  audio_recording
+  audio_sending
+  circle_recording
+  circle_sending
+  files_sending
+}
+
 input UploadingFileMeta {
   url: String!
   filename: String!
@@ -75,6 +84,16 @@ type Message {
   datetime: String!
 }
 
+type ChatActionUser {
+  name: String!
+  id: Int!
+}
+
+type ChatAction {
+  action: ActionTypes!
+  actionUsers: [ChatActionUser!]
+}
+
 type Chat {
 	id: Int!
 	avatar: SavedFile!
@@ -84,6 +103,7 @@ type Chat {
 	isArchived: Boolean!
   ownerId: Int!
   admins: [Int!]
+  actions: [ChatAction!]
 }
 
 type PaginatedChats {
@@ -142,10 +162,8 @@ enum DeleteForOptions {
 type Query {
 	getChatMessages(chatId: Int!, page: Int, perPage: Int): PaginatedMessages!
 	getChats(page: Int, perPage: Int): PaginatedChats!
-	searchChats(query: String!, page: Int, perPage: Int): PaginatedChats!
 	getChat(chatId: Int!): Chat!
   getChatAttachments(chatId: Int!, fileType: FileType!): PaginatedFiles!
-	searchMessages(query: String, chatId: Int, page: Int, perPage: Int): PaginatedMessages!
   getLastMessagesForChats(chatIds: [Int!]): [Message!]
 }
 
@@ -161,6 +179,7 @@ type Mutation {
   deleteMessage(chatId: Int!, messageId: Int!, deleteFor: DeleteForOptions!): Boolean
   deleteChat(chatId: Int!): Boolean
   deleteMessageReaction(chatId: Int!, messageId: Int!): Boolean
+  sendUserAction(chatId: Int!, actionType: ActionTypes!, start: Boolean!): Boolean
 }
 
 schema {

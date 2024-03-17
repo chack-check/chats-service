@@ -15,14 +15,25 @@ type ChangeMessageRequest struct {
 }
 
 type Chat struct {
-	ID         int        `json:"id"`
-	Avatar     *SavedFile `json:"avatar"`
-	Title      string     `json:"title"`
-	Type       ChatType   `json:"type"`
-	Members    []int      `json:"members,omitempty"`
-	IsArchived bool       `json:"isArchived"`
-	OwnerID    int        `json:"ownerId"`
-	Admins     []int      `json:"admins,omitempty"`
+	ID         int           `json:"id"`
+	Avatar     *SavedFile    `json:"avatar"`
+	Title      string        `json:"title"`
+	Type       ChatType      `json:"type"`
+	Members    []int         `json:"members,omitempty"`
+	IsArchived bool          `json:"isArchived"`
+	OwnerID    int           `json:"ownerId"`
+	Admins     []int         `json:"admins,omitempty"`
+	Actions    []*ChatAction `json:"actions,omitempty"`
+}
+
+type ChatAction struct {
+	Action      ActionTypes       `json:"action"`
+	ActionUsers []*ChatActionUser `json:"actionUsers,omitempty"`
+}
+
+type ChatActionUser struct {
+	Name string `json:"name"`
+	ID   int    `json:"id"`
 }
 
 type CreateChatRequest struct {
@@ -113,6 +124,55 @@ type UploadingFileMeta struct {
 	Filename       string              `json:"filename"`
 	Signature      string              `json:"signature"`
 	SystemFiletype SystemFiletypesEnum `json:"systemFiletype"`
+}
+
+type ActionTypes string
+
+const (
+	ActionTypesWriting         ActionTypes = "writing"
+	ActionTypesAudioRecording  ActionTypes = "audio_recording"
+	ActionTypesAudioSending    ActionTypes = "audio_sending"
+	ActionTypesCircleRecording ActionTypes = "circle_recording"
+	ActionTypesCircleSending   ActionTypes = "circle_sending"
+	ActionTypesFilesSending    ActionTypes = "files_sending"
+)
+
+var AllActionTypes = []ActionTypes{
+	ActionTypesWriting,
+	ActionTypesAudioRecording,
+	ActionTypesAudioSending,
+	ActionTypesCircleRecording,
+	ActionTypesCircleSending,
+	ActionTypesFilesSending,
+}
+
+func (e ActionTypes) IsValid() bool {
+	switch e {
+	case ActionTypesWriting, ActionTypesAudioRecording, ActionTypesAudioSending, ActionTypesCircleRecording, ActionTypesCircleSending, ActionTypesFilesSending:
+		return true
+	}
+	return false
+}
+
+func (e ActionTypes) String() string {
+	return string(e)
+}
+
+func (e *ActionTypes) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ActionTypes(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ActionTypes", str)
+	}
+	return nil
+}
+
+func (e ActionTypes) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 type ChatType string

@@ -65,6 +65,8 @@ jobs:
           manifests: |
             kubernetes/stage/db/deployment.yml
             kubernetes/stage/db/service.yml
+            kubernetes/stage/redis/deployment.yml
+            kubernetes/stage/redis/service.yml
 
       - name: Deploy app
         uses: azure/k8s-deploy@v1

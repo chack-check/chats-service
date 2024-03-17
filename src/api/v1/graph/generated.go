@@ -46,6 +46,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Chat struct {
+		Actions    func(childComplexity int) int
 		Admins     func(childComplexity int) int
 		Avatar     func(childComplexity int) int
 		ID         func(childComplexity int) int
@@ -54,6 +55,16 @@ type ComplexityRoot struct {
 		OwnerID    func(childComplexity int) int
 		Title      func(childComplexity int) int
 		Type       func(childComplexity int) int
+	}
+
+	ChatAction struct {
+		Action      func(childComplexity int) int
+		ActionUsers func(childComplexity int) int
+	}
+
+	ChatActionUser struct {
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
 	}
 
 	CreateReactionRequest struct {
@@ -90,6 +101,7 @@ type ComplexityRoot struct {
 		EditMessage           func(childComplexity int, chatID int, messageID int, request model.ChangeMessageRequest) int
 		ReactMessage          func(childComplexity int, chatID int, messageID int, content string) int
 		ReadMessage           func(childComplexity int, chatID int, messageID *int) int
+		SendUserAction        func(childComplexity int, chatID int, actionType model.ActionTypes, start bool) int
 	}
 
 	PaginatedChats struct {
@@ -119,8 +131,6 @@ type ComplexityRoot struct {
 		GetChatMessages         func(childComplexity int, chatID int, page *int, perPage *int) int
 		GetChats                func(childComplexity int, page *int, perPage *int) int
 		GetLastMessagesForChats func(childComplexity int, chatIds []int) int
-		SearchChats             func(childComplexity int, query string, page *int, perPage *int) int
-		SearchMessages          func(childComplexity int, query *string, chatID *int, page *int, perPage *int) int
 	}
 
 	Reaction struct {
@@ -148,14 +158,13 @@ type MutationResolver interface {
 	DeleteMessage(ctx context.Context, chatID int, messageID int, deleteFor model.DeleteForOptions) (*bool, error)
 	DeleteChat(ctx context.Context, chatID int) (*bool, error)
 	DeleteMessageReaction(ctx context.Context, chatID int, messageID int) (*bool, error)
+	SendUserAction(ctx context.Context, chatID int, actionType model.ActionTypes, start bool) (*bool, error)
 }
 type QueryResolver interface {
 	GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error)
 	GetChats(ctx context.Context, page *int, perPage *int) (*model.PaginatedChats, error)
-	SearchChats(ctx context.Context, query string, page *int, perPage *int) (*model.PaginatedChats, error)
 	GetChat(ctx context.Context, chatID int) (*model.Chat, error)
 	GetChatAttachments(ctx context.Context, chatID int, fileType model.FileType) (*model.PaginatedFiles, error)
-	SearchMessages(ctx context.Context, query *string, chatID *int, page *int, perPage *int) (*model.PaginatedMessages, error)
 	GetLastMessagesForChats(ctx context.Context, chatIds []int) ([]*model.Message, error)
 }
 
@@ -173,6 +182,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Chat.actions":
+		if e.complexity.Chat.Actions == nil {
+			break
+		}
+
+		return e.complexity.Chat.Actions(childComplexity), true
 
 	case "Chat.admins":
 		if e.complexity.Chat.Admins == nil {
@@ -229,6 +245,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Chat.Type(childComplexity), true
+
+	case "ChatAction.action":
+		if e.complexity.ChatAction.Action == nil {
+			break
+		}
+
+		return e.complexity.ChatAction.Action(childComplexity), true
+
+	case "ChatAction.actionUsers":
+		if e.complexity.ChatAction.ActionUsers == nil {
+			break
+		}
+
+		return e.complexity.ChatAction.ActionUsers(childComplexity), true
+
+	case "ChatActionUser.id":
+		if e.complexity.ChatActionUser.ID == nil {
+			break
+		}
+
+		return e.complexity.ChatActionUser.ID(childComplexity), true
+
+	case "ChatActionUser.name":
+		if e.complexity.ChatActionUser.Name == nil {
+			break
+		}
+
+		return e.complexity.ChatActionUser.Name(childComplexity), true
 
 	case "CreateReactionRequest.content":
 		if e.complexity.CreateReactionRequest.Content == nil {
@@ -474,6 +518,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ReadMessage(childComplexity, args["chatId"].(int), args["messageId"].(*int)), true
 
+	case "Mutation.sendUserAction":
+		if e.complexity.Mutation.SendUserAction == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_sendUserAction_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SendUserAction(childComplexity, args["chatId"].(int), args["actionType"].(model.ActionTypes), args["start"].(bool)), true
+
 	case "PaginatedChats.data":
 		if e.complexity.PaginatedChats.Data == nil {
 			break
@@ -617,30 +673,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetLastMessagesForChats(childComplexity, args["chatIds"].([]int)), true
-
-	case "Query.searchChats":
-		if e.complexity.Query.SearchChats == nil {
-			break
-		}
-
-		args, err := ec.field_Query_searchChats_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.SearchChats(childComplexity, args["query"].(string), args["page"].(*int), args["perPage"].(*int)), true
-
-	case "Query.searchMessages":
-		if e.complexity.Query.SearchMessages == nil {
-			break
-		}
-
-		args, err := ec.field_Query_searchMessages_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.SearchMessages(childComplexity, args["query"].(*string), args["chatId"].(*int), args["page"].(*int), args["perPage"].(*int)), true
 
 	case "Reaction.content":
 		if e.complexity.Reaction.Content == nil {
@@ -1078,6 +1110,39 @@ func (ec *executionContext) field_Mutation_readMessage_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_sendUserAction_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	var arg1 model.ActionTypes
+	if tmp, ok := rawArgs["actionType"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("actionType"))
+		arg1, err = ec.unmarshalNActionTypes2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐActionTypes(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["actionType"] = arg1
+	var arg2 bool
+	if tmp, ok := rawArgs["start"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("start"))
+		arg2, err = ec.unmarshalNBoolean2bool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["start"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1201,81 +1266,6 @@ func (ec *executionContext) field_Query_getLastMessagesForChats_args(ctx context
 		}
 	}
 	args["chatIds"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_searchChats_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["query"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["query"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["page"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["page"] = arg1
-	var arg2 *int
-	if tmp, ok := rawArgs["perPage"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("perPage"))
-		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["perPage"] = arg2
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_searchMessages_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *string
-	if tmp, ok := rawArgs["query"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["query"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["chatId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["chatId"] = arg1
-	var arg2 *int
-	if tmp, ok := rawArgs["page"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
-		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["page"] = arg2
-	var arg3 *int
-	if tmp, ok := rawArgs["perPage"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("perPage"))
-		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["perPage"] = arg3
 	return args, nil
 }
 
@@ -1663,6 +1653,232 @@ func (ec *executionContext) _Chat_admins(ctx context.Context, field graphql.Coll
 func (ec *executionContext) fieldContext_Chat_admins(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Chat",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Chat_actions(ctx context.Context, field graphql.CollectedField, obj *model.Chat) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Chat_actions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Actions, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ChatAction)
+	fc.Result = res
+	return ec.marshalOChatAction2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatActionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Chat_actions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Chat",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "action":
+				return ec.fieldContext_ChatAction_action(ctx, field)
+			case "actionUsers":
+				return ec.fieldContext_ChatAction_actionUsers(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChatAction", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChatAction_action(ctx context.Context, field graphql.CollectedField, obj *model.ChatAction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChatAction_action(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Action, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ActionTypes)
+	fc.Result = res
+	return ec.marshalNActionTypes2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐActionTypes(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChatAction_action(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChatAction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ActionTypes does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChatAction_actionUsers(ctx context.Context, field graphql.CollectedField, obj *model.ChatAction) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChatAction_actionUsers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ActionUsers, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ChatActionUser)
+	fc.Result = res
+	return ec.marshalOChatActionUser2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatActionUserᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChatAction_actionUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChatAction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_ChatActionUser_name(ctx, field)
+			case "id":
+				return ec.fieldContext_ChatActionUser_id(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ChatActionUser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChatActionUser_name(ctx context.Context, field graphql.CollectedField, obj *model.ChatActionUser) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChatActionUser_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChatActionUser_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChatActionUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChatActionUser_id(ctx context.Context, field graphql.CollectedField, obj *model.ChatActionUser) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChatActionUser_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChatActionUser_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChatActionUser",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -2614,6 +2830,8 @@ func (ec *executionContext) fieldContext_Mutation_createChat(ctx context.Context
 				return ec.fieldContext_Chat_ownerId(ctx, field)
 			case "admins":
 				return ec.fieldContext_Chat_admins(ctx, field)
+			case "actions":
+				return ec.fieldContext_Chat_actions(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Chat", field.Name)
 		},
@@ -2687,6 +2905,8 @@ func (ec *executionContext) fieldContext_Mutation_addChatMembers(ctx context.Con
 				return ec.fieldContext_Chat_ownerId(ctx, field)
 			case "admins":
 				return ec.fieldContext_Chat_admins(ctx, field)
+			case "actions":
+				return ec.fieldContext_Chat_actions(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Chat", field.Name)
 		},
@@ -2760,6 +2980,8 @@ func (ec *executionContext) fieldContext_Mutation_addChatAdmins(ctx context.Cont
 				return ec.fieldContext_Chat_ownerId(ctx, field)
 			case "admins":
 				return ec.fieldContext_Chat_admins(ctx, field)
+			case "actions":
+				return ec.fieldContext_Chat_actions(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Chat", field.Name)
 		},
@@ -2833,6 +3055,8 @@ func (ec *executionContext) fieldContext_Mutation_editChat(ctx context.Context, 
 				return ec.fieldContext_Chat_ownerId(ctx, field)
 			case "admins":
 				return ec.fieldContext_Chat_admins(ctx, field)
+			case "actions":
+				return ec.fieldContext_Chat_actions(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Chat", field.Name)
 		},
@@ -3177,6 +3401,58 @@ func (ec *executionContext) fieldContext_Mutation_deleteMessageReaction(ctx cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_sendUserAction(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_sendUserAction(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SendUserAction(rctx, fc.Args["chatId"].(int), fc.Args["actionType"].(model.ActionTypes), fc.Args["start"].(bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_sendUserAction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_sendUserAction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PaginatedChats_page(ctx context.Context, field graphql.CollectedField, obj *model.PaginatedChats) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PaginatedChats_page(ctx, field)
 	if err != nil {
@@ -3361,6 +3637,8 @@ func (ec *executionContext) fieldContext_PaginatedChats_data(ctx context.Context
 				return ec.fieldContext_Chat_ownerId(ctx, field)
 			case "admins":
 				return ec.fieldContext_Chat_admins(ctx, field)
+			case "actions":
+				return ec.fieldContext_Chat_actions(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Chat", field.Name)
 		},
@@ -3887,71 +4165,6 @@ func (ec *executionContext) fieldContext_Query_getChats(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_searchChats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_searchChats(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().SearchChats(rctx, fc.Args["query"].(string), fc.Args["page"].(*int), fc.Args["perPage"].(*int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.PaginatedChats)
-	fc.Result = res
-	return ec.marshalNPaginatedChats2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐPaginatedChats(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_searchChats(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "page":
-				return ec.fieldContext_PaginatedChats_page(ctx, field)
-			case "numPages":
-				return ec.fieldContext_PaginatedChats_numPages(ctx, field)
-			case "perPage":
-				return ec.fieldContext_PaginatedChats_perPage(ctx, field)
-			case "data":
-				return ec.fieldContext_PaginatedChats_data(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PaginatedChats", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_searchChats_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Query_getChat(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_getChat(ctx, field)
 	if err != nil {
@@ -4007,6 +4220,8 @@ func (ec *executionContext) fieldContext_Query_getChat(ctx context.Context, fiel
 				return ec.fieldContext_Chat_ownerId(ctx, field)
 			case "admins":
 				return ec.fieldContext_Chat_admins(ctx, field)
+			case "actions":
+				return ec.fieldContext_Chat_actions(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Chat", field.Name)
 		},
@@ -4084,71 +4299,6 @@ func (ec *executionContext) fieldContext_Query_getChatAttachments(ctx context.Co
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getChatAttachments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_searchMessages(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_searchMessages(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().SearchMessages(rctx, fc.Args["query"].(*string), fc.Args["chatId"].(*int), fc.Args["page"].(*int), fc.Args["perPage"].(*int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.PaginatedMessages)
-	fc.Result = res
-	return ec.marshalNPaginatedMessages2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐPaginatedMessages(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_searchMessages(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "page":
-				return ec.fieldContext_PaginatedMessages_page(ctx, field)
-			case "numPages":
-				return ec.fieldContext_PaginatedMessages_numPages(ctx, field)
-			case "perPage":
-				return ec.fieldContext_PaginatedMessages_perPage(ctx, field)
-			case "data":
-				return ec.fieldContext_PaginatedMessages_data(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PaginatedMessages", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_searchMessages_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6777,6 +6927,93 @@ func (ec *executionContext) _Chat(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "admins":
 			out.Values[i] = ec._Chat_admins(ctx, field, obj)
+		case "actions":
+			out.Values[i] = ec._Chat_actions(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var chatActionImplementors = []string{"ChatAction"}
+
+func (ec *executionContext) _ChatAction(ctx context.Context, sel ast.SelectionSet, obj *model.ChatAction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, chatActionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChatAction")
+		case "action":
+			out.Values[i] = ec._ChatAction_action(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "actionUsers":
+			out.Values[i] = ec._ChatAction_actionUsers(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var chatActionUserImplementors = []string{"ChatActionUser"}
+
+func (ec *executionContext) _ChatActionUser(ctx context.Context, sel ast.SelectionSet, obj *model.ChatActionUser) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, chatActionUserImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ChatActionUser")
+		case "name":
+			out.Values[i] = ec._ChatActionUser_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "id":
+			out.Values[i] = ec._ChatActionUser_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7010,6 +7247,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteMessageReaction":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteMessageReaction(ctx, field)
+			})
+		case "sendUserAction":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_sendUserAction(ctx, field)
 			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -7253,28 +7494,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "searchChats":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_searchChats(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getChat":
 			field := field
 
@@ -7307,28 +7526,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getChatAttachments(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "searchMessages":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_searchMessages(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -7809,6 +8006,16 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNActionTypes2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐActionTypes(ctx context.Context, v interface{}) (model.ActionTypes, error) {
+	var res model.ActionTypes
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNActionTypes2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐActionTypes(ctx context.Context, sel ast.SelectionSet, v model.ActionTypes) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -7841,6 +8048,26 @@ func (ec *executionContext) marshalNChat2ᚖgithubᚗcomᚋchackᚑcheckᚋchats
 		return graphql.Null
 	}
 	return ec._Chat(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNChatAction2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatAction(ctx context.Context, sel ast.SelectionSet, v *model.ChatAction) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ChatAction(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNChatActionUser2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatActionUser(ctx context.Context, sel ast.SelectionSet, v *model.ChatActionUser) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ChatActionUser(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNChatType2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatType(ctx context.Context, v interface{}) (model.ChatType, error) {
@@ -8375,6 +8602,100 @@ func (ec *executionContext) marshalOChat2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋch
 				defer wg.Done()
 			}
 			ret[i] = ec.marshalNChat2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChat(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalOChatAction2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatActionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ChatAction) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNChatAction2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatAction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalOChatActionUser2ᚕᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatActionUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ChatActionUser) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNChatActionUser2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋapiᚋv1ᚋgraphᚋmodelᚐChatActionUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

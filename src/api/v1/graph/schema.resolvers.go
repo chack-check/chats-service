@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/chack-check/chats-service/api/v1/factories"
 	"github.com/chack-check/chats-service/api/v1/graph/model"
 	"github.com/chack-check/chats-service/api/v1/services"
 	"github.com/chack-check/chats-service/api/v1/utils"
@@ -74,7 +75,7 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 		}
 	}
 
-	chat, err := utils.ChatRequestToDbChat(&request)
+	chat, err := factories.ChatRequestToChatDto(request)
 	if err != nil {
 		return nil, err
 	}
@@ -83,18 +84,18 @@ func (r *mutationResolver) CreateChat(ctx context.Context, request model.CreateC
 	log.Printf("Creating chat: %v from request: %v", chat, request)
 	if request.User != nil {
 		log.Printf("Creating chat request user: %v", *request.User)
-		err = chatsManager.Create(chat, token, uint(*request.User))
+		err = chatsManager.Create(&chat, token, uint(*request.User))
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err = chatsManager.Create(chat, token, 0)
+		err = chatsManager.Create(&chat, token, 0)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	chatSchema := utils.DbChatToSchema(*chat)
+	chatSchema := factories.ChatDtoToResponse(chat)
 	return &chatSchema, nil
 }
 
@@ -206,6 +207,29 @@ func (r *mutationResolver) DeleteMessageReaction(ctx context.Context, chatID int
 	return &deleted, nil
 }
 
+// SendUserAction is the resolver for the sendUserAction field.
+func (r *mutationResolver) SendUserAction(ctx context.Context, chatID int, actionType model.ActionTypes, start bool) (*bool, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		isSended := false
+		return &isSended, err
+	}
+
+	chatsManager := services.NewChatsManager()
+	chat, err := chatsManager.GetConcrete(uint(chatID), token)
+	if err != nil {
+		isSended := false
+		return &isSended, err
+	}
+	err = chatsManager.HandleChatUserAction(token, chat, actionType.String(), start)
+	if err != nil {
+		isSended := false
+		return &isSended, err
+	}
+	isSended := true
+	return &isSended, nil
+}
+
 // GetChatMessages is the resolver for the getChatMessages field.
 func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *int, perPage *int) (*model.PaginatedMessages, error) {
 	token, _ := ctx.Value("token").(*jwt.Token)
@@ -228,7 +252,7 @@ func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, page *i
 	}
 
 	messagesManager := services.NewMessagesManager()
-	paginatedMessages, err := messagesManager.GetChatAll(token, chat.ID, pageValue, perPageValue)
+	paginatedMessages, err := messagesManager.GetChatAll(token, uint(chat.Id), pageValue, perPageValue)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +294,7 @@ func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (
 
 	var chats []*model.Chat
 	for _, chat := range *paginatedChats.Data {
-		chatSchema := utils.DbChatToSchema(*chat)
+		chatSchema := factories.ChatDtoToResponse(*chat)
 		chats = append(chats, &chatSchema)
 	}
 
@@ -279,33 +303,6 @@ func (r *queryResolver) GetChats(ctx context.Context, page *int, perPage *int) (
 		NumPages: paginatedChats.PagesCount,
 		PerPage:  paginatedChats.PerPage,
 		Data:     chats,
-	}, nil
-}
-
-// SearchChats is the resolver for the searchChats field.
-func (r *queryResolver) SearchChats(ctx context.Context, query string, page *int, perPage *int) (*model.PaginatedChats, error) {
-	token, _ := ctx.Value("token").(*jwt.Token)
-	if err := utils.UserRequired(token); err != nil {
-		return nil, err
-	}
-
-	chatsManager := services.NewChatsManager()
-	chats, err := chatsManager.Search(query, token, *page, *perPage)
-	if err != nil {
-		return nil, err
-	}
-
-	var chatsSchemas []*model.Chat
-	for _, chat := range *chats.Data {
-		chatSchema := utils.DbChatToSchema(*chat)
-		chatsSchemas = append(chatsSchemas, &chatSchema)
-	}
-
-	return &model.PaginatedChats{
-		Page:     chats.Page,
-		NumPages: chats.PagesCount,
-		PerPage:  chats.PerPage,
-		Data:     chatsSchemas,
 	}, nil
 }
 
@@ -323,28 +320,13 @@ func (r *queryResolver) GetChat(ctx context.Context, chatID int) (*model.Chat, e
 		return nil, err
 	}
 
-	response := utils.DbChatToSchema(*chat)
+	response := factories.ChatDtoToResponse(*chat)
 	return &response, nil
 }
 
 // GetChatAttachments is the resolver for the getChatAttachments field.
 func (r *queryResolver) GetChatAttachments(ctx context.Context, chatID int, fileType model.FileType) (*model.PaginatedFiles, error) {
 	panic(fmt.Errorf("not implemented: GetChatAttachments - getChatAttachments"))
-}
-
-// SearchMessages is the resolver for the searchMessages field.
-func (r *queryResolver) SearchMessages(ctx context.Context, query *string, chatID *int, page *int, perPage *int) (*model.PaginatedMessages, error) {
-	token, _ := ctx.Value("token").(*jwt.Token)
-	if err := utils.UserRequired(token); err != nil {
-		return nil, err
-	}
-
-	return &model.PaginatedMessages{
-		Page:     1,
-		NumPages: 1,
-		PerPage:  20,
-		Data:     []*model.Message{},
-	}, nil
 }
 
 // GetLastMessagesForChats is the resolver for the getLastMessagesForChats field.
