@@ -82,7 +82,7 @@ func (s ChatsServerImplementation) GetMessagesByIds(ctx context.Context, request
 	if err != nil {
 		return nil, err
 	} else if messages == nil {
-		return nil, fmt.Errorf("empty messages array")
+		return &pb.MessagesArrayResponse{Messages: []*pb.MessageResponse{}}, nil
 	}
 
 	var chat_ids []int
@@ -97,8 +97,6 @@ func (s ChatsServerImplementation) GetMessagesByIds(ctx context.Context, request
 	chats, err := chats_service.GetByIds(chat_ids, token)
 	if err != nil {
 		return nil, err
-	} else if chats == nil {
-		return nil, fmt.Errorf("empty chats array")
 	}
 
 	messages_factory := generic_factories.MessagesFactory{}
@@ -134,6 +132,8 @@ func (s ChatsServerImplementation) GetChatsByIds(ctx context.Context, request *p
 	chats, err := chats_service.GetByIds(chats_ids, token)
 	if err != nil {
 		return nil, err
+	} else if chats == nil {
+		return &pb.ChatsArrayResponse{Chats: []*pb.ChatResponse{}}, nil
 	}
 
 	chats_factory := generic_factories.ChatsFactory{}

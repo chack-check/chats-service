@@ -270,7 +270,7 @@ func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, mes
 		return err
 	}
 
-	chat, err := manager.ChatsRepository.GetWithMember(uint(tokenSubject.UserId), chatId)
+	chat, err := manager.ChatsRepository.GetWithMember(chatId, uint(tokenSubject.UserId))
 	if err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (manager *MessagesManager) DeleteReaction(token *jwt.Token, chatId int, mes
 		return err
 	}
 
-	chat, err := manager.ChatsRepository.GetWithMember(uint(tokenSubject.UserId), uint(chatId))
+	chat, err := manager.ChatsRepository.GetWithMember(uint(chatId), uint(tokenSubject.UserId))
 	if err != nil {
 		return err
 	}
