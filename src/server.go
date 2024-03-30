@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -26,8 +25,8 @@ func initSentry() {
 	log.Printf("Initing sentry with dsn: %s", settings.Settings.APP_SENTRY_DSN)
 	if settings.Settings.APP_SENTRY_DSN != "" {
 		err := sentry.Init(sentry.ClientOptions{
-			Dsn:   settings.Settings.APP_SENTRY_DSN,
-			Debug: true,
+			Dsn:         settings.Settings.APP_SENTRY_DSN,
+			Environment: "stage",
 		})
 		if err != nil {
 			log.Printf("Error sentry init: %s", err)
@@ -58,6 +57,5 @@ func main() {
 
 	log.Printf("Server has started on http://0.0.0.0:%d", settings.Settings.PORT)
 	listen := fmt.Sprintf(":%d", settings.Settings.PORT)
-	sentry.CaptureException(errors.New("my error"))
 	log.Fatal(http.ListenAndServe(listen, router))
 }
