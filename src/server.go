@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -55,5 +56,6 @@ func main() {
 
 	log.Printf("Server has started on http://0.0.0.0:%d", settings.Settings.PORT)
 	listen := fmt.Sprintf(":%d", settings.Settings.PORT)
+	sentry.CaptureException(errors.New("my error"))
 	log.Fatal(http.ListenAndServe(listen, router))
 }
