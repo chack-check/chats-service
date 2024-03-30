@@ -12,6 +12,7 @@ type BaseSettings struct {
 	GRPC_SERVER_PORT                   int
 	USERS_GRPC_HOST                    string
 	USERS_GRPC_PORT                    int
+	APP_SENTRY_DSN                     string
 	APP_REDIS_URL                      string
 	APP_RABBIT_USER                    string
 	APP_RABBIT_PASSWORD                string
@@ -52,6 +53,7 @@ func NewSettings() *BaseSettings {
 		panic("You need to specify GRPC_SERVER_PORT environment variable")
 	}
 
+	sentry_dsn := os.Getenv("APP_SENTRY_DSN")
 	rabbit_user := os.Getenv("APP_RABBIT_USER")
 	if rabbit_user == "" && environment != "test" {
 		panic("You need to specify rabbitmq user")
@@ -138,6 +140,7 @@ func NewSettings() *BaseSettings {
 		USERS_GRPC_PORT:                    users_grpc_port,
 		GRPC_SERVER_HOST:                   grpc_server_host,
 		GRPC_SERVER_PORT:                   grpc_server_port,
+		APP_SENTRY_DSN:                     sentry_dsn,
 		APP_RABBIT_HOST:                    rabbit_host,
 		APP_RABBIT_PORT:                    rabbit_port,
 		APP_RABBIT_USER:                    rabbit_user,

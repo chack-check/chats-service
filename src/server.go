@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -16,11 +17,25 @@ import (
 	"github.com/chack-check/chats-service/rabbit"
 	"github.com/chack-check/chats-service/settings"
 	"github.com/chack-check/chats-service/ws"
+	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi"
 )
 
+func initSentry() {
+	if settings.Settings.APP_SENTRY_DSN != "" {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn: settings.Settings.APP_SENTRY_DSN,
+		})
+		if err != nil {
+			log.Printf("Error sentry init: %s", err)
+		}
+	}
+}
+
 func main() {
+	initSentry()
 	defer rabbit.EventsRabbitConnection.Close()
+	defer sentry.Flush(time.Second * 5)
 	log.SetFlags(log.Lshortfile)
 
 	database.DB.AutoMigrate(&models.Chat{}, &models.Message{}, &models.Reaction{})

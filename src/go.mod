@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.17.36
+	github.com/getsentry/sentry-go v0.27.0
 	github.com/go-chi/chi v1.5.4
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/gorilla/websocket v1.5.0

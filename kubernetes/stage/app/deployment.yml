@@ -82,3 +82,9 @@ spec:
                 secretKeyRef:
                   name: chats-service-credentials
                   key: redis_url
+
+            - name: APP_SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: chats-service-credentials
+                  key: sentry_dsn
