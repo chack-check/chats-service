@@ -23,6 +23,7 @@ import (
 )
 
 func initSentry() {
+	log.Printf("Initing sentry with dsn: %s", settings.Settings.APP_SENTRY_DSN)
 	if settings.Settings.APP_SENTRY_DSN != "" {
 		err := sentry.Init(sentry.ClientOptions{
 			Dsn: settings.Settings.APP_SENTRY_DSN,
