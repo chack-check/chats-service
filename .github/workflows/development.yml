@@ -10,5 +10,4 @@ jobs:
     with:
       service-name: diffaction-chats-service
       skiptests: true
-      skiplint: true
       run-tests-command: skip
