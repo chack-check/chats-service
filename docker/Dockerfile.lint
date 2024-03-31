@@ -8,6 +8,4 @@ RUN go mod download
 
 COPY src/ /src/
 
-RUN go get -u golang.org/x/lint/golint
-
-ENTRYPOINT [ "golint ." ]
+ENTRYPOINT [ "go",  "vet",  "." ]
