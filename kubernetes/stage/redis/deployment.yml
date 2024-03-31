@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chats-redis-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chats-redis-db
+  template:
+    metadata:
+      labels:
+        app: chats-redis-db
+    spec:
+      containers:
+      - name: redis
+        image: redis:alpine
+        ports:
+        - containerPort: 6379
+          name: client
+        - containerPort: 16379
+          name: gossip
+        volumeMounts:
+        - name: data
+          mountPath: /data
+          readOnly: false
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: redis-chats-persistent-volume-claim

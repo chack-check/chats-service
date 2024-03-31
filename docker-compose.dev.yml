@@ -1,6 +1,18 @@
 version: "3"
 
 services:
+  chats-redis:
+    image: redis
+    networks:
+      - chack-check-network
+  chats-db:
+    image: postgres
+    env_file:
+      - .env.dev
+    networks:
+      - chack-check-network
+    volumes:
+      - chats-pgdata:/var/lib/postgresql/data
   chats-service:
     build:
       dockerfile: docker/Dockerfile.dev
@@ -8,14 +20,18 @@ services:
     command: go run ./server.go
     ports:
       - 8001:8001
+      - 9091:9090
     env_file:
       - .env.dev
-    volumes:
-      - ./chats-service:/src
     networks:
       - chack-check-network
+    depends_on:
+      - chats-db
 
 networks:
   chack-check-network:
     name: chack-check-network
     external: true
+
+volumes:
+  chats-pgdata:

@@ -7,7 +7,3 @@ COPY src/go.mod src/go.sum /src/
 RUN go mod download
 
 COPY src/ /src/
-
-RUN go build -o server .
-
-ENTRYPOINT [ "./server" ]

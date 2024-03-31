@@ -8,6 +8,4 @@ RUN go mod download
 
 COPY src/ /src/
 
-RUN go build -o server .
-
-ENTRYPOINT [ "./server" ]
+ENTRYPOINT [ "go",  "vet",  "." ]
