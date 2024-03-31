@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/chack-check/chats-service/settings"
+	"github.com/getsentry/sentry-go"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -17,16 +18,19 @@ type TokenSubject struct {
 }
 
 func GetTokenFromString(tokenString string) (*jwt.Token, error) {
+	log.Printf("Fetching token from string")
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(settings.Settings.SECRET_KEY), nil
 	})
 
+	log.Printf("Fetched token = %+v. err = %v", token, err)
 	return token, err
 }
 
 func UserMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header["Authorization"]
+		log.Printf("Authorization header: %v", authorization)
 		ctx := r.Context()
 
 		if len(authorization) != 0 {
@@ -39,9 +43,11 @@ func UserMiddleware(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
+			sentry.CaptureException(err)
 			log.Printf("Error validating token: %v", err)
 		}
 
+		log.Printf("Auahorization token is nil")
 		ctx = context.WithValue(r.Context(), "token", nil)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -53,12 +59,14 @@ func GetTokenSubject(token *jwt.Token) (TokenSubject, error) {
 	subject, err := token.Claims.GetSubject()
 	if err != nil {
 		log.Printf("Error parsing token subject: %v", token)
+		sentry.CaptureException(err)
 		return tokenSubject, err
 	}
 
 	err = json.Unmarshal([]byte(subject), &tokenSubject)
 	if err != nil {
 		log.Printf("Error parsing token subject: %v", token)
+		sentry.CaptureException(err)
 		return tokenSubject, err
 	}
 

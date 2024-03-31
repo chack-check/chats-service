@@ -13,6 +13,7 @@ import (
 	"github.com/chack-check/chats-service/api/v1/utils"
 	"github.com/chack-check/chats-service/generic_factories"
 	"github.com/chack-check/chats-service/rabbit"
+	"github.com/getsentry/sentry-go"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lib/pq"
 )
@@ -70,7 +71,7 @@ func (manager *MessagesManager) GetChatAll(token *jwt.Token, chatId uint, page i
 }
 
 func (manager *MessagesManager) createTextMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
-	log.Print("Creating text message")
+	log.Printf("Constructing text message: %+v. Message data = %+v", message, messageData)
 	if err := utils.ValidateTextMessage(messageData); err != nil {
 		return err
 	}
@@ -82,6 +83,7 @@ func (manager *MessagesManager) createTextMessage(message *models.Message, messa
 
 	var message_attachments []models.SavedFile
 	if len(messageData.Attachments) != 0 {
+		log.Printf("Saving message attachments: %+v", messageData.Attachments)
 		for _, attachment := range messageData.Attachments {
 			utils.ValidateUploadingFile(*attachment, "file_in_chat")
 			saved_file := generic_factories.UploadingFileToDbFile(*attachment)
@@ -102,16 +104,19 @@ func (manager *MessagesManager) createTextMessage(message *models.Message, messa
 		message.Mentioned = mentioned
 	}
 
+	fmt.Printf("Constructed text message: %+v", message)
 	return nil
 }
 
 func (manager *MessagesManager) createVoiceMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
-	log.Print("Creating voice message")
+	log.Printf("Constructing voice message %+v. Message data = %+v", message, messageData)
 	if err := utils.ValidateVoiceMessage(messageData); err != nil {
 		return err
 	}
 
 	if messageData.Voice == nil {
+		log.Printf("Trying to create voice message without voice")
+		sentry.CaptureException(fmt.Errorf("trying to create voice message without voice"))
 		return fmt.Errorf("you can't create voice message without voice field")
 	}
 
@@ -121,16 +126,18 @@ func (manager *MessagesManager) createVoiceMessage(message *models.Message, mess
 		message.ReplyToID = uint(*messageData.ReplyToID)
 	}
 
+	log.Printf("Constructed voice message: %+v", message)
 	return nil
 }
 
 func (manager *MessagesManager) createCircleMessage(message *models.Message, messageData *model.CreateMessageRequest) error {
-	log.Print("Creating circle message")
+	log.Printf("Constructing circle message %+v. Message data = %+v", message, messageData)
 	if err := utils.ValidateCircleMessage(messageData); err != nil {
 		return err
 	}
 
 	if messageData.Circle == nil {
+		sentry.CaptureException(fmt.Errorf("trying to create circle message without circle"))
 		return fmt.Errorf("you can't create circle message without circle field")
 	}
 
@@ -140,10 +147,12 @@ func (manager *MessagesManager) createCircleMessage(message *models.Message, mes
 		message.ReplyToID = uint(*messageData.ReplyToID)
 	}
 
+	log.Printf("Constructed circle message: %+v", message)
 	return nil
 }
 
 func (manager *MessagesManager) sendMessageEvent(message *models.Message, chat *dtos.ChatDto, eventType string, includedUsers *[]int) error {
+	log.Printf("Sending message event to rabbitmq. Message = %+v. Chat = %+v. Event type = %s. IncludedUsers = %v", message, chat, eventType, includedUsers)
 	if includedUsers == nil {
 		includedUsers = &([]int{})
 		for _, member := range chat.Members {
@@ -154,13 +163,16 @@ func (manager *MessagesManager) sendMessageEvent(message *models.Message, chat *
 
 	messageEvent, err := rabbit.NewSystemEvent(eventType, *includedUsers, message)
 	if err != nil {
+		log.Printf("Error constructing message event: %v. Message event: %+v", err, messageEvent)
+		sentry.CaptureException(err)
 		return err
 	}
 
+	log.Printf("Sending rabbitmq event %+v", messageEvent)
 	err = rabbit.EventsRabbitConnection.SendEvent(messageEvent)
-	log.Printf("Sended event with type %s to rabbitmq", eventType)
 	if err != nil {
 		log.Printf("Error sending event with type %s to rabbitmq", eventType)
+		sentry.CaptureException(err)
 	}
 
 	return nil
@@ -286,6 +298,7 @@ func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, mes
 
 	var deleteForArray []int32
 	var includedUsersArray []int
+	log.Printf("Deleting message for: %v", deleteFor)
 	if deleteFor == DeleteForMe {
 		deleteForArray = append(deleteForArray, int32(tokenSubject.UserId))
 		includedUsersArray = append(includedUsersArray, tokenSubject.UserId)
@@ -296,7 +309,8 @@ func (manager *MessagesManager) DeleteMessage(token *jwt.Token, chatId uint, mes
 		}
 	}
 
-	err = manager.MessagesQueries.DeleteMessage(message, deleteForArray)
+	log.Printf("Deleting message %+v. Delete for array: %v", message, deleteForArray)
+	manager.MessagesQueries.DeleteMessage(message, deleteForArray)
 
 	manager.sendMessageEvent(message, chat, "message_deleted", &includedUsersArray)
 
@@ -340,6 +354,7 @@ func (manager *MessagesManager) Update(chat *dtos.ChatDto, messageId uint, updat
 		return nil, err
 	}
 
+	log.Printf("Updating message %+v. Update data = %+v", message, updateData)
 	message.Content = *updateData.Content
 
 	var attachments []models.SavedFile
@@ -360,6 +375,8 @@ func (manager *MessagesManager) Update(chat *dtos.ChatDto, messageId uint, updat
 	message.Mentioned = mentioned
 
 	manager.MessagesQueries.Update(message)
+
+	log.Printf("Updated message: %+v", message)
 
 	manager.sendMessageEvent(message, chat, "message_updated", nil)
 

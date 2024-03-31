@@ -41,7 +41,7 @@ func UserRequired(token *jwt.Token) error {
 }
 
 func ValidateTextMessage(message *model.CreateMessageRequest) error {
-	if len(*message.Content) == 0 && len(message.Attachments) == 0 {
+	if (message.Content == nil || len(*message.Content) == 0) && len(message.Attachments) == 0 {
 		return fmt.Errorf("you need to specify content or attachments for text message")
 	}
 

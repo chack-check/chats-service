@@ -16,7 +16,6 @@ import (
 	"github.com/chack-check/chats-service/middlewares"
 	"github.com/chack-check/chats-service/rabbit"
 	"github.com/chack-check/chats-service/settings"
-	"github.com/chack-check/chats-service/ws"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi"
 )
@@ -50,7 +49,6 @@ func main() {
 
 	router.Handle("/api/v1/chats", playground.Handler("GraphQL playground", "/api/v1/chats/query"))
 	router.Handle("/api/v1/chats/query", srvV1)
-	router.HandleFunc("/api/v1/chats/ws", ws.WsHandler)
 
 	go grpcserver.StartServer(settings.Settings.GRPC_SERVER_HOST, settings.Settings.GRPC_SERVER_PORT)
 

@@ -112,9 +112,10 @@ func (conn *RabbitConnection) SendEvent(event interface{}) error {
 		return err
 	}
 
-	log.Printf("Sending message to queue: %v\n", event)
+	log.Printf("Sending message to queue: %+v", event)
 
 	if conn.Connection.IsClosed() {
+		log.Printf("Rabbitmq connection is closed. Reconnecting")
 		conn.Connect()
 	}
 
@@ -149,7 +150,7 @@ func (conn *MockRabbitConnection) Close() {
 }
 
 func NewEventsRabbitConnection(user string, pass string, host string, port int, exchangeName string) IRabbitConnection {
-	log.Print(settings.Settings.APP_ENVIRONMENT)
+	log.Printf("Initializing rabbitmq connection for environment: %s", settings.Settings.APP_ENVIRONMENT)
 	if settings.Settings.APP_ENVIRONMENT == "test" {
 		conn := &MockRabbitConnection{}
 		return conn
@@ -164,6 +165,7 @@ func NewEventsRabbitConnection(user string, pass string, host string, port int, 
 	}
 	conn.Connect()
 	conn.DeclareExchange()
+	log.Printf("Declared rabbitmq connection: %+v", conn)
 	return conn
 }
 

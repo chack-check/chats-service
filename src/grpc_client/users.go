@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/chack-check/chats-service/protousers"
 	"github.com/chack-check/chats-service/settings"
+	"github.com/getsentry/sentry-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -31,12 +32,15 @@ type MockUsersGrpc struct{}
 var UsersGrpcClient IUsersGrpc = GetUsersGrpc()
 
 func (usersGrpc *UsersGrpc) Connect() {
+	log.Printf("Connecting to users grpc host = %s port = %d", usersGrpc.Host, usersGrpc.Port)
 	opts := grpc.WithTransportCredentials(insecure.NewCredentials())
 	dsl := fmt.Sprintf("%s:%d", usersGrpc.Host, usersGrpc.Port)
 
-	connection, error := grpc.Dial(dsl, opts)
-	if error != nil {
-		log.Printf("Error when connection to users grpc: %s", error)
+	connection, err := grpc.Dial(dsl, opts)
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Printf("Error when connection to users grpc: %s", err)
+		return
 	}
 
 	usersGrpc.client = pb.NewUsersClient(connection)
@@ -47,9 +51,15 @@ func (usersGrpc *MockUsersGrpc) Connect() {
 }
 
 func (usersGrpc *UsersGrpc) GetUserByToken(token string) (*pb.UserResponse, error) {
+	log.Printf("Fetching user by token from users grpc")
 	user, err := usersGrpc.client.GetUserByToken(context.Background(), &pb.GetUserByTokenRequest{Token: token})
 
 	if err != nil || user == nil {
+		if err != nil {
+			sentry.CaptureException(err)
+		} else {
+			sentry.CaptureException(fmt.Errorf("error when getting user from users grpc"))
+		}
 		return user, fmt.Errorf("error when getting user: %v", err)
 	}
 
@@ -76,9 +86,18 @@ func (usersGrpc *MockUsersGrpc) GetUserByToken(token string) (*pb.UserResponse, 
 }
 
 func (UsersGrpc *UsersGrpc) GetUserByRefreshToken(token string) (*pb.UserResponse, error) {
+	log.Printf("Fetching user by refresh token from users grpc")
 	user, err := UsersGrpc.client.GetUserByRefreshToken(context.Background(), &pb.GetUserByTokenRequest{Token: token})
 
 	if err != nil || user == nil {
+		log.Printf("Error when getting user: %v", err)
+
+		if err != nil {
+			sentry.CaptureException(err)
+		} else {
+			sentry.CaptureException(fmt.Errorf("error when getting user by refresh token"))
+		}
+
 		return user, fmt.Errorf("error when getting user: %v", err)
 	}
 
@@ -105,8 +124,16 @@ func (UsersGrpc *MockUsersGrpc) GetUserByRefreshToken(token string) (*pb.UserRes
 }
 
 func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
+	log.Printf("Fetching user by id from users grpc: %d", id)
 	user, err := usersGrpc.client.GetUserById(context.Background(), &pb.GetUserByIdRequest{Id: int32(id)})
 	if err != nil || user == nil {
+		log.Printf("Error fetching user by id from users grpc: %v", err)
+		if err != nil {
+			sentry.CaptureException(err)
+		} else {
+			sentry.CaptureException(fmt.Errorf("error fetching user by id"))
+		}
+
 		return user, fmt.Errorf("error when getting user: %v", err)
 	}
 
@@ -114,6 +141,7 @@ func (usersGrpc *UsersGrpc) GetUserById(id int) (*pb.UserResponse, error) {
 }
 
 func (usersGrpc *UsersGrpc) GetUsersByIds(ids []int) (*pb.UsersArrayResponse, error) {
+	log.Printf("Fetching users by ids from users grpc: %v", ids)
 	var ids_int32 []int32
 	for _, id := range ids {
 		ids_int32 = append(ids_int32, int32(id))
@@ -121,6 +149,8 @@ func (usersGrpc *UsersGrpc) GetUsersByIds(ids []int) (*pb.UsersArrayResponse, er
 
 	users_response, err := usersGrpc.client.GetUsersByIds(context.Background(), &pb.GetUsersByIdsRequest{Ids: ids_int32})
 	if err != nil {
+		log.Printf("Error fetching users by ids from users grpc: %v", err)
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
