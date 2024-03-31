@@ -19,7 +19,6 @@ jobs:
         kubernetes/stage/app/service.yml
         kubernetes/stage/app/ingress.yml
       skiptests: true
-      skiplint: true
       run-tests-command: skip
     secrets:
       KUBERNETES_SECRET: ${{ secrets.KUBERNETES_SECRET }}
