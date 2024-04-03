@@ -178,18 +178,20 @@ func (e ActionTypes) MarshalGQL(w io.Writer) {
 type ChatType string
 
 const (
-	ChatTypeGroup ChatType = "group"
-	ChatTypeUser  ChatType = "user"
+	ChatTypeGroup         ChatType = "group"
+	ChatTypeUser          ChatType = "user"
+	ChatTypeSavedMessages ChatType = "saved_messages"
 )
 
 var AllChatType = []ChatType{
 	ChatTypeGroup,
 	ChatTypeUser,
+	ChatTypeSavedMessages,
 }
 
 func (e ChatType) IsValid() bool {
 	switch e {
-	case ChatTypeGroup, ChatTypeUser:
+	case ChatTypeGroup, ChatTypeUser, ChatTypeSavedMessages:
 		return true
 	}
 	return false
