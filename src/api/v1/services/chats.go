@@ -464,6 +464,15 @@ func (manager *ChatsManager) HandleChatUserAction(token *jwt.Token, chat *dtos.C
 	return nil
 }
 
+func (manager *ChatsManager) SystemSave(chatDto *dtos.ChatDto) (*dtos.ChatDto, error) {
+	if chatDto == nil {
+		return nil, fmt.Errorf("Error saving chat: chatDto is nil pointer")
+	}
+
+	manager.ChatsRepository.Create(chatDto)
+	return chatDto, nil
+}
+
 func NewChatsManager() *ChatsManager {
 	return &ChatsManager{
 		ChatsRepository: &repositories.ChatsRepository{},

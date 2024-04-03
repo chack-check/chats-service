@@ -19,6 +19,8 @@ type BaseSettings struct {
 	APP_RABBIT_HOST                    string
 	APP_RABBIT_PORT                    int
 	APP_RABBIT_PUBLISHER_EXCHANGE_NAME string
+	APP_RABBIT_USERS_EXCHANGE_NAME     string
+	APP_RABBIT_CONSUMER_QUEUE_NAME     string
 	APP_DATABASE_HOST                  string
 	APP_DATABASE_PORT                  int
 	APP_DATABASE_USER                  string
@@ -77,6 +79,16 @@ func NewSettings() *BaseSettings {
 	rabbit_exchange_name := os.Getenv("APP_RABBIT_PUBLISHER_EXCHANGE_NAME")
 	if rabbit_exchange_name == "" && environment != "test" {
 		panic("You need to specify rabbit publisher exchange name")
+	}
+
+	rabbit_users_exchange_name := os.Getenv("APP_RABBIT_USERS_EXCHANGE_NAME")
+	if rabbit_users_exchange_name == "" && environment != "test" {
+		panic("You need to specify rabbit users exchange name")
+	}
+
+	rabbit_consumer_queue_name := os.Getenv("APP_RABBIT_CONSUMER_QUEUE_NAME")
+	if rabbit_users_exchange_name == "" && environment != "test" {
+		panic("You need to specify rabbit consumer queue name")
 	}
 
 	users_grpc_host := os.Getenv("USERS_GRPC_HOST")
@@ -146,6 +158,8 @@ func NewSettings() *BaseSettings {
 		APP_RABBIT_USER:                    rabbit_user,
 		APP_RABBIT_PASSWORD:                rabbit_password,
 		APP_RABBIT_PUBLISHER_EXCHANGE_NAME: rabbit_exchange_name,
+		APP_RABBIT_USERS_EXCHANGE_NAME:     rabbit_users_exchange_name,
+		APP_RABBIT_CONSUMER_QUEUE_NAME:     rabbit_consumer_queue_name,
 		APP_DATABASE_HOST:                  db_host,
 		APP_DATABASE_PORT:                  db_port,
 		APP_DATABASE_USER:                  db_user,

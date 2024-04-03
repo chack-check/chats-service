@@ -11,6 +11,7 @@ import (
 	"github.com/chack-check/chats-service/api/v1/graph"
 	"github.com/chack-check/chats-service/api/v1/models"
 	"github.com/chack-check/chats-service/api/v1/services"
+	"github.com/chack-check/chats-service/consumer"
 	"github.com/chack-check/chats-service/database"
 	grpcserver "github.com/chack-check/chats-service/grpc_server"
 	"github.com/chack-check/chats-service/middlewares"
@@ -37,6 +38,8 @@ func main() {
 	defer rabbit.EventsRabbitConnection.Close()
 	defer sentry.Flush(time.Second * 5)
 	log.SetFlags(log.Lshortfile)
+
+	go consumer.StartConsumer("chats-service")
 
 	database.DB.AutoMigrate(&models.Chat{}, &models.Message{}, &models.Reaction{})
 
