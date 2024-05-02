@@ -17,16 +17,17 @@ services:
     build:
       dockerfile: docker/Dockerfile.dev
       context: .
-    command: go run ./server.go
+    command: go run main.go
     ports:
       - 8001:8001
-      - 9091:9090
+      - 9091:9091
     env_file:
       - .env.dev
     networks:
       - chack-check-network
     depends_on:
       - chats-db
+      - chats-redis
 
 networks:
   chack-check-network:

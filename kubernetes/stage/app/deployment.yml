@@ -24,11 +24,11 @@ spec:
             - containerPort: 9090
               name: grc
           env:
-            - name: USERS_GRPC_HOST
+            - name: APP_USERS_GRPC_HOST
               value: "chack-users-service"
-            - name: USERS_GRPC_PORT
+            - name: APP_USERS_GRPC_PORT
               value: "9090"
-            - name: PORT
+            - name: APP_PORT
               value: "8000"
             - name: APP_DATABASE_HOST
               value: chats-postgres-service
@@ -66,11 +66,11 @@ spec:
               value: users_exchange
             - name: APP_RABBIT_CONSUMER_QUEUE_NAME
               value: chats_queue
-            - name: GRPC_SERVER_HOST
+            - name: APP_GRPC_HOST
               value: "0.0.0.0"
-            - name: GRPC_SERVER_PORT
+            - name: APP_GRPC_PORT
               value: "9090"
-            - name: SECRET_KEY
+            - name: APP_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: users-service-credentials
