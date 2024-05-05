@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chack-chats-service-deployment
+  name: diffaction-chats-service-deployment
   labels:
-    app: chack-chats-service
-    name: chack-chats-service
+    app: diffaction-chats-service
+    name: diffaction-chats-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: chack-chats-service
+      app: diffaction-chats-service
   template:
     metadata:
       labels:
-        app: chack-chats-service
+        app: diffaction-chats-service
     spec:
       containers:
-        - name: chack-chats-service
+        - name: diffaction-chats-service
           image: artemowkin/diffaction-chats-service:latest
           ports:
             - containerPort: 8000
@@ -25,47 +25,27 @@ spec:
               name: grc
           env:
             - name: APP_USERS_GRPC_HOST
-              value: "chack-users-service"
+              value: "diffaction-users-service"
             - name: APP_USERS_GRPC_PORT
               value: "9090"
             - name: APP_PORT
               value: "8000"
-            - name: APP_DATABASE_HOST
-              value: chats-postgres-service
-            - name: APP_DATABASE_PORT
-              value: "5432"
-            - name: APP_DATABASE_USER
+            - name: APP_DATABASE_DSN
               valueFrom:
                 secretKeyRef:
                   name: chats-service-credentials
-                  key: database_user
-            - name: APP_DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: chats-service-credentials
-                  key: database_password
-            - name: APP_DATABASE_NAME
-              value: chats_db
+                  key: database_dsn
             - name: APP_RABBIT_HOST
-              value: rabbitmq
-            - name: APP_RABBIT_PORT
-              value: "5672"
-            - name: APP_RABBIT_USER
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-credentials
-                  key: user
-            - name: APP_RABBIT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-credentials
-                  key: password
+                  key: url
             - name: APP_RABBIT_PUBLISHER_EXCHANGE_NAME
-              value: chats_exchange
+              value: stage_chats_exchange
             - name: APP_RABBIT_USERS_EXCHANGE_NAME
-              value: users_exchange
+              value: stage_users_exchange
             - name: APP_RABBIT_CONSUMER_QUEUE_NAME
-              value: chats_queue
+              value: stage_chats_queue
             - name: APP_GRPC_HOST
               value: "0.0.0.0"
             - name: APP_GRPC_PORT

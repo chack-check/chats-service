@@ -12,15 +12,8 @@ import (
 
 func StartConsumer(ctag string) error {
 	for {
-		dialString := fmt.Sprintf(
-			"amqp://%s:%s@%s:%d/",
-			Settings.APP_RABBIT_USER,
-			Settings.APP_RABBIT_PASSWORD,
-			Settings.APP_RABBIT_HOST,
-			Settings.APP_RABBIT_PORT,
-		)
-		log.Printf("dialing %q", dialString)
-		conn, err := amqp.Dial(dialString)
+		log.Printf("dialing %q", Settings.APP_RABBIT_HOST)
+		conn, err := amqp.Dial(Settings.APP_RABBIT_HOST)
 		if err != nil {
 			log.Printf("Error dialing rabbitmq conenction: %v", err)
 			sentry.CaptureException(err)

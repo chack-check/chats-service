@@ -3,7 +3,6 @@ package rabbit
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -65,18 +64,14 @@ type MessageEvent struct {
 }
 
 type RabbitConnection struct {
-	User         string
-	Pass         string
 	Host         string
-	Port         string
 	ExchangeName string
 	Connection   *amqp.Connection
 	Channel      *amqp.Channel
 }
 
 func (conn *RabbitConnection) Connect() {
-	dialString := fmt.Sprintf("amqp://%s:%s@%s:%s/", conn.User, conn.Pass, conn.Host, conn.Port)
-	connection, err := amqp.Dial(dialString)
+	connection, err := amqp.Dial(conn.Host)
 	failOnError(err, "Failed to connect to RabbitMQ")
 	conn.Connection = connection
 
@@ -132,12 +127,9 @@ func (conn *RabbitConnection) Close() {
 	conn.Channel.Close()
 }
 
-func NewEventsRabbitConnection(user string, pass string, host string, port int, exchangeName string) *RabbitConnection {
+func NewEventsRabbitConnection(host string, exchangeName string) *RabbitConnection {
 	conn := &RabbitConnection{
-		User:         user,
-		Pass:         pass,
 		Host:         host,
-		Port:         fmt.Sprint(port),
 		ExchangeName: exchangeName,
 	}
 	conn.Connect()
@@ -147,9 +139,6 @@ func NewEventsRabbitConnection(user string, pass string, host string, port int, 
 }
 
 var EventsRabbitConnection *RabbitConnection = NewEventsRabbitConnection(
-	Settings.APP_RABBIT_USER,
-	Settings.APP_RABBIT_PASSWORD,
 	Settings.APP_RABBIT_HOST,
-	Settings.APP_RABBIT_PORT,
 	Settings.APP_RABBIT_PUBLISHER_EXCHANGE_NAME,
 )
