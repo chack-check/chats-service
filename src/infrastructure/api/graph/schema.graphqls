@@ -1,0 +1,194 @@
+enum ChatType {
+	group
+	user
+  saved_messages
+}
+
+enum FileType {
+  images
+  videos
+  documents
+  music
+  other
+  all
+}
+
+enum MessageType {
+  text
+  event
+  call
+  voice
+  circle
+}
+
+enum SystemFiletypesEnum {
+  avatar
+  file_in_chat
+  voice
+  circle
+}
+
+enum ActionTypes {
+  writing
+  audio_recording
+  audio_sending
+  circle_recording
+  circle_sending
+  files_sending
+}
+
+input UploadingFileMeta {
+  url: String!
+  filename: String!
+  signature: String!
+  systemFiletype: SystemFiletypesEnum!
+}
+
+input UploadingFile {
+  original: UploadingFileMeta!
+  converted: UploadingFileMeta
+}
+
+type SavedFile {
+  originalUrl: String!
+  originalFilename: String!
+  convertedUrl: String
+  convertedFilename: String
+}
+
+type Reaction {
+  content: String!
+  userId: Int!
+}
+
+type Message {
+	id: Int!
+  type: MessageType!
+	senderId: Int!
+	chatId: Int!
+  content: String
+	voice: SavedFile
+	circle: SavedFile
+	replyToId: Int
+	readedBy: [Int!]!
+  reactions: [Reaction!]!
+  attachments: [SavedFile!]!
+  mentioned: [Int!]!
+  createdAt: String!
+}
+
+type ChatActionUser {
+  fullName: String!
+  id: Int!
+}
+
+type ChatAction {
+  action: ActionTypes!
+  actionUsers: [ChatActionUser!]!
+}
+
+type Chat {
+	id: Int!
+	avatar: SavedFile
+	title: String!
+	type: ChatType!
+	members: [Int!]!
+	isArchived: Boolean!
+  ownerId: Int!
+  admins: [Int!]!
+  actions: [ChatAction!]!
+}
+
+type PaginatedChats {
+  page: Int!
+  numPages: Int!
+  pagesCount: Int!
+  total: Int!
+  data: [Chat!]!
+}
+
+input CreateChatRequest {
+	avatar: UploadingFile
+	title: String
+	members: [Int!]
+	user: Int
+}
+
+input CreateMessageRequest {
+	chatId: Int!
+  type: MessageType!
+	content: String
+	voice: UploadingFile
+	attachments: [UploadingFile!]
+	replyToId: Int
+	mentioned: [Int!]
+	circle: UploadingFile
+}
+
+type CreateReactionRequest {
+  content: String!
+  messageId: Int!
+}
+
+input ChangeMessageRequest {
+  content: String
+  attachments: [UploadingFile!]
+  mentioned: [Int]
+}
+
+type PaginatedMessages {
+  offset: Int!
+  limit: Int!
+  total: Int!
+  data: [Message!]
+}
+
+type ErrorResponse {
+  message: String!
+}
+
+type MessagesArray {
+  messages: [Message!]!
+}
+
+type BooleanResult {
+  result: Boolean!
+}
+
+union PaginatedMessagesErrorResponse = PaginatedMessages | ErrorResponse
+
+union PaginatedChatsErrorResponse = PaginatedChats | ErrorResponse
+
+union ChatErrorResponse = Chat | ErrorResponse
+
+union MessagesArrayErrorResponse = MessagesArray | ErrorResponse
+
+union MessageErrorResponse = Message | ErrorResponse
+
+union BooleanResultErrorResponse = BooleanResult | ErrorResponse
+
+type Query {
+	getChatMessages(chatId: Int!, offset: Int, limit: Int): PaginatedMessagesErrorResponse!
+  getChatMessagesByCursor(chatId: Int!, messageId: Int!, aroundOffset: Int): PaginatedMessagesErrorResponse!
+	getChats(page: Int, perPage: Int): PaginatedChatsErrorResponse!
+	getChat(chatId: Int!): ChatErrorResponse!
+  getLastMessagesForChats(chatIds: [Int!]!): MessagesArrayErrorResponse!
+}
+
+type Mutation {
+	createMessage(request: CreateMessageRequest!): MessageErrorResponse!
+  editMessage(messageId: Int!, request: ChangeMessageRequest!): MessageErrorResponse!
+  createChat(request: CreateChatRequest!): ChatErrorResponse!
+  readMessage(messageId: Int!): MessageErrorResponse!
+  reactMessage(messageId: Int!, content: String!): MessageErrorResponse!
+  deleteMessageReaction(messageId: Int!): MessageErrorResponse!
+  deleteMessage(messageId: Int!): BooleanResultErrorResponse!
+  deleteChat(chatId: Int!): BooleanResultErrorResponse!
+  sendUserAction(chatId: Int!, actionType: ActionTypes!): BooleanResultErrorResponse!
+  stopUserAction(chatId: Int!, actionType: ActionTypes!): BooleanResultErrorResponse!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

@@ -9,11 +9,6 @@ jobs:
     uses: chack-check/diffaction-workflows/.github/workflows/staging.yml@main
     with:
       service-name: diffaction-chats-service
-      app-dependencies-manifests: |
-        kubernetes/stage/db/deployment.yml
-        kubernetes/stage/db/service.yml
-        kubernetes/stage/redis/deployment.yml
-        kubernetes/stage/redis/service.yml
       app-manifests: |
         kubernetes/stage/app/deployment.yml
         kubernetes/stage/app/service.yml
