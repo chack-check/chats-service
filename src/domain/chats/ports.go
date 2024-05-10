@@ -22,6 +22,7 @@ type ChatEventsPort interface {
 	SendChatCreated(chat Chat)
 	SendChatDeleted(chat Chat)
 	SendChatUserAction(chat Chat)
+	SendChatChanged(chat Chat)
 }
 
 type UserActionsPort interface {
@@ -119,5 +120,71 @@ func NewGetChatsByIdsHandler(
 		chatsPort:       chatsPort,
 		usersPort:       usersPort,
 		userActionsPort: userActionsPort,
+	}
+}
+
+func NewAddChatsMembersHandler(
+	chatsPort ChatsPort,
+	usersPort users.UsersPort,
+	chatEventsPort ChatEventsPort,
+) AddChatMembersHandler {
+	return AddChatMembersHandler{
+		chatsPort:      chatsPort,
+		usersPort:      usersPort,
+		chatEventsPort: chatEventsPort,
+	}
+}
+
+func NewAddChatsAdminsHandler(
+	chatsPort ChatsPort,
+	usersPort users.UsersPort,
+	chatEventsPort ChatEventsPort,
+) AddChatAdminsHandler {
+	return AddChatAdminsHandler{
+		chatsPort:      chatsPort,
+		usersPort:      usersPort,
+		chatEventsPort: chatEventsPort,
+	}
+}
+
+func NewRemoveChatMembersHandler(
+	chatsPort ChatsPort,
+	chatEventsPort ChatEventsPort,
+) RemoveChatMembersHandler {
+	return RemoveChatMembersHandler{
+		chatsPort:      chatsPort,
+		chatEventsPort: chatEventsPort,
+	}
+}
+
+func NewRemoveChatAdminsHandler(
+	chatsPort ChatsPort,
+	chatEventsPort ChatEventsPort,
+) RemoveChatAdminsHandler {
+	return RemoveChatAdminsHandler{
+		chatsPort:      chatsPort,
+		chatEventsPort: chatEventsPort,
+	}
+}
+
+func NewQuitChatHandler(chatsPort ChatsPort, chatEventsPort ChatEventsPort) QuitChatHandler {
+	return QuitChatHandler{
+		chatsPort:      chatsPort,
+		chatEventsPort: chatEventsPort,
+	}
+}
+
+func NewChangeGroupChatHandler(chatsPort ChatsPort, chatEventsPort ChatEventsPort) ChangeGroupChatHandler {
+	return ChangeGroupChatHandler{
+		chatsPort:      chatsPort,
+		chatEventsPort: chatEventsPort,
+	}
+}
+
+func NewUpdateGroupChatAvatar(chatsPort ChatsPort, filesPort files.FilesPort, chatEventsPort ChatEventsPort) UpdateGroupChatAvatar {
+	return UpdateGroupChatAvatar{
+		chatsPort:      chatsPort,
+		filesPort:      filesPort,
+		chatEventsPort: chatEventsPort,
 	}
 }

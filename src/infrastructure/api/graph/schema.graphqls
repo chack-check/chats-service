@@ -143,6 +143,10 @@ type PaginatedMessages {
   data: [Message!]
 }
 
+input ChangeGroupChatData {
+  title: String
+}
+
 type ErrorResponse {
   message: String!
 }
@@ -186,6 +190,13 @@ type Mutation {
   deleteChat(chatId: Int!): BooleanResultErrorResponse!
   sendUserAction(chatId: Int!, actionType: ActionTypes!): BooleanResultErrorResponse!
   stopUserAction(chatId: Int!, actionType: ActionTypes!): BooleanResultErrorResponse!
+  addMembers(chatId: Int!, members: [Int!]!): ChatErrorResponse!
+  addAdmins(chatId: Int!, admins: [Int!]!): ChatErrorResponse!
+  removeMembers(chatId: Int!, members: [Int!]!): ChatErrorResponse!
+  removeAdmins(chatId: Int!, admins: [Int!]!): ChatErrorResponse!
+  quitChat(chatId: Int!): ChatErrorResponse!
+  changeGroupChat(chatId: Int!, chatData: ChangeGroupChatData!): ChatErrorResponse!
+  updateGroupChatAvatar(chatId: Int!, avatar: UploadingFile!): ChatErrorResponse!
 }
 
 schema {

@@ -38,6 +38,10 @@ type BooleanResult struct {
 
 func (BooleanResult) IsBooleanResultErrorResponse() {}
 
+type ChangeGroupChatData struct {
+	Title *string `json:"title,omitempty"`
+}
+
 type ChangeMessageRequest struct {
 	Content     *string          `json:"content,omitempty"`
 	Attachments []*UploadingFile `json:"attachments,omitempty"`

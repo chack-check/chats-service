@@ -101,16 +101,23 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AddAdmins             func(childComplexity int, chatID int, admins []int) int
+		AddMembers            func(childComplexity int, chatID int, members []int) int
+		ChangeGroupChat       func(childComplexity int, chatID int, chatData model.ChangeGroupChatData) int
 		CreateChat            func(childComplexity int, request model.CreateChatRequest) int
 		CreateMessage         func(childComplexity int, request model.CreateMessageRequest) int
 		DeleteChat            func(childComplexity int, chatID int) int
 		DeleteMessage         func(childComplexity int, messageID int) int
 		DeleteMessageReaction func(childComplexity int, messageID int) int
 		EditMessage           func(childComplexity int, messageID int, request model.ChangeMessageRequest) int
+		QuitChat              func(childComplexity int, chatID int) int
 		ReactMessage          func(childComplexity int, messageID int, content string) int
 		ReadMessage           func(childComplexity int, messageID int) int
+		RemoveAdmins          func(childComplexity int, chatID int, admins []int) int
+		RemoveMembers         func(childComplexity int, chatID int, members []int) int
 		SendUserAction        func(childComplexity int, chatID int, actionType model.ActionTypes) int
 		StopUserAction        func(childComplexity int, chatID int, actionType model.ActionTypes) int
+		UpdateGroupChatAvatar func(childComplexity int, chatID int, avatar model.UploadingFile) int
 	}
 
 	PaginatedChats struct {
@@ -160,6 +167,13 @@ type MutationResolver interface {
 	DeleteChat(ctx context.Context, chatID int) (model.BooleanResultErrorResponse, error)
 	SendUserAction(ctx context.Context, chatID int, actionType model.ActionTypes) (model.BooleanResultErrorResponse, error)
 	StopUserAction(ctx context.Context, chatID int, actionType model.ActionTypes) (model.BooleanResultErrorResponse, error)
+	AddMembers(ctx context.Context, chatID int, members []int) (model.ChatErrorResponse, error)
+	AddAdmins(ctx context.Context, chatID int, admins []int) (model.ChatErrorResponse, error)
+	RemoveMembers(ctx context.Context, chatID int, members []int) (model.ChatErrorResponse, error)
+	RemoveAdmins(ctx context.Context, chatID int, admins []int) (model.ChatErrorResponse, error)
+	QuitChat(ctx context.Context, chatID int) (model.ChatErrorResponse, error)
+	ChangeGroupChat(ctx context.Context, chatID int, chatData model.ChangeGroupChatData) (model.ChatErrorResponse, error)
+	UpdateGroupChatAvatar(ctx context.Context, chatID int, avatar model.UploadingFile) (model.ChatErrorResponse, error)
 }
 type QueryResolver interface {
 	GetChatMessages(ctx context.Context, chatID int, offset *int, limit *int) (model.PaginatedMessagesErrorResponse, error)
@@ -401,6 +415,42 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MessagesArray.Messages(childComplexity), true
 
+	case "Mutation.addAdmins":
+		if e.complexity.Mutation.AddAdmins == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addAdmins_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddAdmins(childComplexity, args["chatId"].(int), args["admins"].([]int)), true
+
+	case "Mutation.addMembers":
+		if e.complexity.Mutation.AddMembers == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addMembers_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddMembers(childComplexity, args["chatId"].(int), args["members"].([]int)), true
+
+	case "Mutation.changeGroupChat":
+		if e.complexity.Mutation.ChangeGroupChat == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_changeGroupChat_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ChangeGroupChat(childComplexity, args["chatId"].(int), args["chatData"].(model.ChangeGroupChatData)), true
+
 	case "Mutation.createChat":
 		if e.complexity.Mutation.CreateChat == nil {
 			break
@@ -473,6 +523,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.EditMessage(childComplexity, args["messageId"].(int), args["request"].(model.ChangeMessageRequest)), true
 
+	case "Mutation.quitChat":
+		if e.complexity.Mutation.QuitChat == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_quitChat_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.QuitChat(childComplexity, args["chatId"].(int)), true
+
 	case "Mutation.reactMessage":
 		if e.complexity.Mutation.ReactMessage == nil {
 			break
@@ -497,6 +559,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ReadMessage(childComplexity, args["messageId"].(int)), true
 
+	case "Mutation.removeAdmins":
+		if e.complexity.Mutation.RemoveAdmins == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeAdmins_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveAdmins(childComplexity, args["chatId"].(int), args["admins"].([]int)), true
+
+	case "Mutation.removeMembers":
+		if e.complexity.Mutation.RemoveMembers == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeMembers_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveMembers(childComplexity, args["chatId"].(int), args["members"].([]int)), true
+
 	case "Mutation.sendUserAction":
 		if e.complexity.Mutation.SendUserAction == nil {
 			break
@@ -520,6 +606,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.StopUserAction(childComplexity, args["chatId"].(int), args["actionType"].(model.ActionTypes)), true
+
+	case "Mutation.updateGroupChatAvatar":
+		if e.complexity.Mutation.UpdateGroupChatAvatar == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateGroupChatAvatar_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateGroupChatAvatar(childComplexity, args["chatId"].(int), args["avatar"].(model.UploadingFile)), true
 
 	case "PaginatedChats.data":
 		if e.complexity.PaginatedChats.Data == nil {
@@ -694,6 +792,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputChangeGroupChatData,
 		ec.unmarshalInputChangeMessageRequest,
 		ec.unmarshalInputCreateChatRequest,
 		ec.unmarshalInputCreateMessageRequest,
@@ -815,6 +914,78 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_addAdmins_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	var arg1 []int
+	if tmp, ok := rawArgs["admins"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("admins"))
+		arg1, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["admins"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addMembers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	var arg1 []int
+	if tmp, ok := rawArgs["members"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("members"))
+		arg1, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["members"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_changeGroupChat_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	var arg1 model.ChangeGroupChatData
+	if tmp, ok := rawArgs["chatData"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatData"))
+		arg1, err = ec.unmarshalNChangeGroupChatData2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChangeGroupChatData(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatData"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createChat_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -914,6 +1085,21 @@ func (ec *executionContext) field_Mutation_editMessage_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_quitChat_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_reactMessage_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -950,6 +1136,54 @@ func (ec *executionContext) field_Mutation_readMessage_args(ctx context.Context,
 		}
 	}
 	args["messageId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeAdmins_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	var arg1 []int
+	if tmp, ok := rawArgs["admins"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("admins"))
+		arg1, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["admins"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeMembers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	var arg1 []int
+	if tmp, ok := rawArgs["members"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("members"))
+		arg1, err = ec.unmarshalNInt2ᚕintᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["members"] = arg1
 	return args, nil
 }
 
@@ -998,6 +1232,30 @@ func (ec *executionContext) field_Mutation_stopUserAction_args(ctx context.Conte
 		}
 	}
 	args["actionType"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateGroupChatAvatar_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["chatId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chatId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["chatId"] = arg0
+	var arg1 model.UploadingFile
+	if tmp, ok := rawArgs["avatar"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatar"))
+		arg1, err = ec.unmarshalNUploadingFile2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐUploadingFile(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["avatar"] = arg1
 	return args, nil
 }
 
@@ -3153,6 +3411,391 @@ func (ec *executionContext) fieldContext_Mutation_stopUserAction(ctx context.Con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_stopUserAction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addMembers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addMembers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddMembers(rctx, fc.Args["chatId"].(int), fc.Args["members"].([]int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ChatErrorResponse)
+	fc.Result = res
+	return ec.marshalNChatErrorResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChatErrorResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addMembers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChatErrorResponse does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addMembers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addAdmins(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addAdmins(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddAdmins(rctx, fc.Args["chatId"].(int), fc.Args["admins"].([]int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ChatErrorResponse)
+	fc.Result = res
+	return ec.marshalNChatErrorResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChatErrorResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addAdmins(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChatErrorResponse does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addAdmins_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeMembers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeMembers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveMembers(rctx, fc.Args["chatId"].(int), fc.Args["members"].([]int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ChatErrorResponse)
+	fc.Result = res
+	return ec.marshalNChatErrorResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChatErrorResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeMembers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChatErrorResponse does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeMembers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeAdmins(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeAdmins(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveAdmins(rctx, fc.Args["chatId"].(int), fc.Args["admins"].([]int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ChatErrorResponse)
+	fc.Result = res
+	return ec.marshalNChatErrorResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChatErrorResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeAdmins(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChatErrorResponse does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeAdmins_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_quitChat(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_quitChat(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().QuitChat(rctx, fc.Args["chatId"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ChatErrorResponse)
+	fc.Result = res
+	return ec.marshalNChatErrorResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChatErrorResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_quitChat(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChatErrorResponse does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_quitChat_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_changeGroupChat(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_changeGroupChat(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ChangeGroupChat(rctx, fc.Args["chatId"].(int), fc.Args["chatData"].(model.ChangeGroupChatData))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ChatErrorResponse)
+	fc.Result = res
+	return ec.marshalNChatErrorResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChatErrorResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_changeGroupChat(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChatErrorResponse does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_changeGroupChat_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateGroupChatAvatar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateGroupChatAvatar(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateGroupChatAvatar(rctx, fc.Args["chatId"].(int), fc.Args["avatar"].(model.UploadingFile))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ChatErrorResponse)
+	fc.Result = res
+	return ec.marshalNChatErrorResponse2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChatErrorResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateGroupChatAvatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ChatErrorResponse does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateGroupChatAvatar_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6035,6 +6678,35 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputChangeGroupChatData(ctx context.Context, obj interface{}) (model.ChangeGroupChatData, error) {
+	var it model.ChangeGroupChatData
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"title"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputChangeMessageRequest(ctx context.Context, obj interface{}) (model.ChangeMessageRequest, error) {
 	var it model.ChangeMessageRequest
 	asMap := map[string]interface{}{}
@@ -6971,6 +7643,55 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "addMembers":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addMembers(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addAdmins":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addAdmins(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeMembers":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeMembers(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeAdmins":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeAdmins(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "quitChat":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_quitChat(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "changeGroupChat":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_changeGroupChat(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateGroupChatAvatar":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateGroupChatAvatar(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7717,6 +8438,11 @@ func (ec *executionContext) marshalNBooleanResultErrorResponse2githubᚗcomᚋch
 	return ec._BooleanResultErrorResponse(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNChangeGroupChatData2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChangeGroupChatData(ctx context.Context, v interface{}) (model.ChangeGroupChatData, error) {
+	res, err := ec.unmarshalInputChangeGroupChatData(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNChangeMessageRequest2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐChangeMessageRequest(ctx context.Context, v interface{}) (model.ChangeMessageRequest, error) {
 	res, err := ec.unmarshalInputChangeMessageRequest(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -8196,6 +8922,11 @@ func (ec *executionContext) unmarshalNSystemFiletypesEnum2githubᚗcomᚋchack�
 
 func (ec *executionContext) marshalNSystemFiletypesEnum2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐSystemFiletypesEnum(ctx context.Context, sel ast.SelectionSet, v model.SystemFiletypesEnum) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNUploadingFile2githubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐUploadingFile(ctx context.Context, v interface{}) (model.UploadingFile, error) {
+	res, err := ec.unmarshalInputUploadingFile(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNUploadingFile2ᚖgithubᚗcomᚋchackᚑcheckᚋchatsᚑserviceᚋinfrastructureᚋapiᚋgraphᚋmodelᚐUploadingFile(ctx context.Context, v interface{}) (*model.UploadingFile, error) {

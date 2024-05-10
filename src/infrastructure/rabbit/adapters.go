@@ -26,6 +26,11 @@ func (adapter ChatEventsLoggingAdapter) SendChatUserAction(chat chats.Chat) {
 	adapter.adapter.SendChatUserAction(chat)
 }
 
+func (adapter ChatEventsLoggingAdapter) SendChatChanged(chat chats.Chat) {
+	log.Printf("sending chat changed event: %+v", chat)
+	adapter.adapter.SendChatChanged(chat)
+}
+
 type ChatEventsAdapter struct {
 	connection RabbitConnection
 }
@@ -63,6 +68,10 @@ func (adapter ChatEventsAdapter) SendChatDeleted(chat chats.Chat) {
 
 func (adapter ChatEventsAdapter) SendChatUserAction(chat chats.Chat) {
 	adapter.sendChatEvent(chat, "chat_user_action")
+}
+
+func (adapter ChatEventsAdapter) SendChatChanged(chat chats.Chat) {
+	adapter.sendChatEvent(chat, "chat_changed")
 }
 
 type MessageEventsLoggingAdapter struct {
