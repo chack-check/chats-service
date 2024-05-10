@@ -3,6 +3,7 @@ package chats
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/chack-check/chats-service/domain/files"
 	"github.com/chack-check/chats-service/domain/users"
@@ -19,7 +20,16 @@ var (
 	ErrNotGroupAdmin           = fmt.Errorf("you are not a group chat admin")
 	ErrChatNotGroup            = fmt.Errorf("the editing chat is not group")
 	ErrInvalidCreatingChatType = fmt.Errorf("invalid creating chat type. Valid values: group, user, saved_messages")
+	ErrChatNotAdmin            = fmt.Errorf("user is not admin in chat")
 )
+
+func ValidateUserChatMember(chat Chat, userId int) bool {
+	return slices.Contains(chat.GetMembers(), userId)
+}
+
+func ValidateUserChatAdmin(chat Chat, userId int) bool {
+	return chat.GetOwnerId() == userId || slices.Contains(chat.GetAdmins(), userId)
+}
 
 func GetAnotherUserIdForUserChat(chat Chat, currentUserId int) int {
 	if chat.GetType() != "user" {
@@ -92,6 +102,17 @@ type CreateChatHandler struct {
 func (handler *CreateChatHandler) createGroupChat(data CreateChatData, currentUser *users.User) (*Chat, error) {
 	chat := CreateChatDataToChat(data, 0)
 	chat.SetOwnerId(currentUser.GetId())
+	if !ValidateUserChatMember(chat, currentUser.GetId()) {
+		newMembers := chat.GetMembers()
+		newMembers = append(newMembers, currentUser.GetId())
+		chat.SetMembers(newMembers)
+	}
+	if !ValidateUserChatAdmin(chat, currentUser.GetId()) {
+		newAdmins := chat.GetAdmins()
+		newAdmins = append(newAdmins, currentUser.GetId())
+		chat.SetAdmins(newAdmins)
+	}
+
 	chat.SetType("group")
 	savedChat, err := handler.chatsPort.Save(chat)
 	if err != nil {
@@ -311,4 +332,254 @@ func (handler *StopUserActionHandler) Execute(chatId int, userId int, actionType
 	chat.SetupActions(newChatActions)
 	handler.chatEventsPort.SendChatUserAction(*chat)
 	return chat, nil
+}
+
+type AddChatMembersHandler struct {
+	chatsPort      ChatsPort
+	usersPort      users.UsersPort
+	chatEventsPort ChatEventsPort
+}
+
+func (handler *AddChatMembersHandler) Execute(chatId int, userId int, members []int) (*Chat, error) {
+	chat, err := handler.chatsPort.GetByIdForUser(chatId, userId)
+	if err != nil {
+		return nil, ErrChatNotFound
+	}
+
+	if !ValidateUserChatAdmin(*chat, userId) {
+		return nil, ErrChatNotAdmin
+	}
+	if chat.GetType() != GroupChatType {
+		return nil, ErrChatNotGroup
+	}
+
+	newMembers := chat.GetMembers()
+	users := handler.usersPort.GetByIds(members)
+	for _, member := range users {
+		if !slices.Contains(newMembers, member.GetId()) {
+			newMembers = append(newMembers, member.GetId())
+		}
+	}
+
+	chat.SetMembers(newMembers)
+	savedChat, err := handler.chatsPort.Save(*chat)
+	if err != nil {
+		return nil, ErrSavingChat
+	}
+
+	handler.chatEventsPort.SendChatChanged(*savedChat)
+	return savedChat, nil
+}
+
+type AddChatAdminsHandler struct {
+	chatsPort      ChatsPort
+	usersPort      users.UsersPort
+	chatEventsPort ChatEventsPort
+}
+
+func (handler *AddChatAdminsHandler) Execute(chatId int, userId int, admins []int) (*Chat, error) {
+	chat, err := handler.chatsPort.GetByIdForUser(chatId, userId)
+	if err != nil {
+		return nil, ErrChatNotFound
+	}
+
+	if !ValidateUserChatAdmin(*chat, userId) {
+		return nil, ErrChatNotAdmin
+	}
+	if chat.GetType() != GroupChatType {
+		return nil, ErrChatNotGroup
+	}
+
+	newAdmins := chat.GetAdmins()
+	users := handler.usersPort.GetByIds(admins)
+	for _, admin := range users {
+		if !slices.Contains(newAdmins, admin.GetId()) {
+			newAdmins = append(newAdmins, admin.GetId())
+		}
+	}
+
+	chat.SetAdmins(newAdmins)
+	savedChat, err := handler.chatsPort.Save(*chat)
+	if err != nil {
+		return nil, ErrSavingChat
+	}
+
+	handler.chatEventsPort.SendChatChanged(*savedChat)
+	return savedChat, nil
+}
+
+type RemoveChatMembersHandler struct {
+	chatsPort      ChatsPort
+	chatEventsPort ChatEventsPort
+}
+
+func (handler *RemoveChatMembersHandler) Execute(chatId int, userId int, members []int) (*Chat, error) {
+	chat, err := handler.chatsPort.GetByIdForUser(chatId, userId)
+	if err != nil {
+		return nil, ErrChatNotFound
+	}
+
+	if !ValidateUserChatAdmin(*chat, userId) {
+		return nil, ErrChatNotAdmin
+	}
+	if chat.GetType() != GroupChatType {
+		return nil, ErrChatNotGroup
+	}
+
+	var newMembers []int
+	for _, member := range chat.GetMembers() {
+		if !slices.Contains(members, member) || member == userId {
+			newMembers = append(newMembers, member)
+		}
+	}
+
+	chat.SetMembers(newMembers)
+	savedChat, err := handler.chatsPort.Save(*chat)
+	if err != nil {
+		return nil, ErrSavingChat
+	}
+
+	handler.chatEventsPort.SendChatChanged(*savedChat)
+	return savedChat, nil
+}
+
+type RemoveChatAdminsHandler struct {
+	chatsPort      ChatsPort
+	chatEventsPort ChatEventsPort
+}
+
+func (handler *RemoveChatAdminsHandler) Execute(chatId int, userId int, admins []int) (*Chat, error) {
+	chat, err := handler.chatsPort.GetByIdForUser(chatId, userId)
+	if err != nil {
+		return nil, ErrChatNotFound
+	}
+
+	if !ValidateUserChatAdmin(*chat, userId) {
+		return nil, ErrChatNotAdmin
+	}
+	if chat.GetType() != GroupChatType {
+		return nil, ErrChatNotGroup
+	}
+
+	var newAdmins []int
+	for _, admin := range chat.GetAdmins() {
+		if !slices.Contains(admins, admin) || admin == userId {
+			newAdmins = append(newAdmins, admin)
+		}
+	}
+
+	chat.SetAdmins(newAdmins)
+	savedChat, err := handler.chatsPort.Save(*chat)
+	if err != nil {
+		return nil, ErrSavingChat
+	}
+
+	handler.chatEventsPort.SendChatChanged(*savedChat)
+	return savedChat, nil
+}
+
+type QuitChatHandler struct {
+	chatsPort      ChatsPort
+	chatEventsPort ChatEventsPort
+}
+
+func (handler *QuitChatHandler) Execute(chatId int, userId int) (*Chat, error) {
+	chat, err := handler.chatsPort.GetByIdForUser(chatId, userId)
+	if err != nil {
+		return nil, ErrChatNotFound
+	}
+
+	var newMembers []int
+	for _, member := range chat.GetMembers() {
+		if member != userId {
+			newMembers = append(newMembers, member)
+		}
+	}
+
+	var newAdmins []int
+	for _, admin := range chat.GetAdmins() {
+		if admin != userId {
+			newAdmins = append(newAdmins, admin)
+		}
+	}
+
+	chat.SetMembers(newMembers)
+	chat.SetAdmins(newAdmins)
+	savedChat, err := handler.chatsPort.Save(*chat)
+	if err != nil {
+		return nil, ErrSavingChat
+	}
+
+	handler.chatEventsPort.SendChatChanged(*savedChat)
+	return savedChat, nil
+}
+
+type ChangeGroupChatHandler struct {
+	chatsPort      ChatsPort
+	chatEventsPort ChatEventsPort
+}
+
+func (handler *ChangeGroupChatHandler) Execute(chatId int, userId int, chatData ChangeGroupChatData) (*Chat, error) {
+	chat, err := handler.chatsPort.GetByIdForUser(chatId, userId)
+	if err != nil {
+		return nil, ErrChatNotFound
+	}
+
+	if userId != chat.GetOwnerId() && !ValidateUserChatAdmin(*chat, userId) {
+		return nil, ErrChatNotAdmin
+	}
+
+	if chat.GetType() != GroupChatType {
+		return nil, ErrChatNotGroup
+	}
+
+	if chatData.GetTitle() != nil {
+		chat.SetTitle(*chatData.GetTitle())
+	} else {
+		chat.SetTitle("")
+	}
+
+	savedChat, err := handler.chatsPort.Save(*chat)
+	if err != nil {
+		return nil, ErrSavingChat
+	}
+
+	handler.chatEventsPort.SendChatChanged(*savedChat)
+	return savedChat, nil
+}
+
+type UpdateGroupChatAvatar struct {
+	chatsPort      ChatsPort
+	filesPort      files.FilesPort
+	chatEventsPort ChatEventsPort
+}
+
+func (handler *UpdateGroupChatAvatar) Execute(chatId int, userId int, newAvatar files.UploadingFile) (*Chat, error) {
+	chat, err := handler.chatsPort.GetByIdForUser(chatId, userId)
+	if err != nil {
+		return nil, ErrChatNotFound
+	}
+
+	if userId != chat.GetOwnerId() && !ValidateUserChatAdmin(*chat, userId) {
+		return nil, ErrChatNotAdmin
+	}
+
+	if chat.GetType() != GroupChatType {
+		return nil, ErrChatNotGroup
+	}
+
+	err = files.ValidateUploadingFile(handler.filesPort, &newAvatar, files.AvatarFiletype, true)
+	if err != nil {
+		return nil, err
+	}
+
+	savedFile := files.UploadingFileToSavedFile(newAvatar)
+	chat.SetAvatar(savedFile)
+	savedChat, err := handler.chatsPort.Save(*chat)
+	if err != nil {
+		return nil, ErrSavingChat
+	}
+
+	handler.chatEventsPort.SendChatChanged(*savedChat)
+	return savedChat, nil
 }

@@ -295,6 +295,184 @@ func (r *mutationResolver) StopUserAction(ctx context.Context, chatID int, actio
 	return model.BooleanResult{Result: true}, nil
 }
 
+// AddMembers is the resolver for the addMembers field.
+func (r *mutationResolver) AddMembers(ctx context.Context, chatID int, members []int) (model.ChatErrorResponse, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return model.ErrorResponse{Message: "Token required"}, nil
+	}
+
+	tokenSubject, err := middlewares.GetTokenSubject(token)
+	if err != nil {
+		return model.ErrorResponse{Message: "Incorrect token"}, nil
+	}
+
+	chatsHandler := chats.NewAddChatsMembersHandler(
+		database.NewChatsAdapter(*database.DatabaseConnection),
+		usersproto.NewUsersAdapter(usersproto.UsersClientConnect()),
+		rabbit.NewChatEventsAdapter(*rabbit.EventsRabbitConnection),
+	)
+
+	chat, err := chatsHandler.Execute(chatID, tokenSubject.UserId, members)
+	if err != nil {
+		return model.ErrorResponse{Message: err.Error()}, nil
+	}
+
+	return factories.ChatModelToResponse(*chat), nil
+}
+
+// AddAdmins is the resolver for the addAdmins field.
+func (r *mutationResolver) AddAdmins(ctx context.Context, chatID int, admins []int) (model.ChatErrorResponse, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return model.ErrorResponse{Message: "Token required"}, nil
+	}
+
+	tokenSubject, err := middlewares.GetTokenSubject(token)
+	if err != nil {
+		return model.ErrorResponse{Message: "Incorrect token"}, nil
+	}
+
+	chatsHandler := chats.NewAddChatsAdminsHandler(
+		database.NewChatsAdapter(*database.DatabaseConnection),
+		usersproto.NewUsersAdapter(usersproto.UsersClientConnect()),
+		rabbit.NewChatEventsAdapter(*rabbit.EventsRabbitConnection),
+	)
+
+	chat, err := chatsHandler.Execute(chatID, tokenSubject.UserId, admins)
+	if err != nil {
+		return model.ErrorResponse{Message: err.Error()}, nil
+	}
+
+	return factories.ChatModelToResponse(*chat), nil
+}
+
+// RemoveMembers is the resolver for the removeMembers field.
+func (r *mutationResolver) RemoveMembers(ctx context.Context, chatID int, members []int) (model.ChatErrorResponse, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return model.ErrorResponse{Message: "Token required"}, nil
+	}
+
+	tokenSubject, err := middlewares.GetTokenSubject(token)
+	if err != nil {
+		return model.ErrorResponse{Message: "Incorrect token"}, nil
+	}
+
+	chatsHandler := chats.NewRemoveChatMembersHandler(
+		database.NewChatsAdapter(*database.DatabaseConnection),
+		rabbit.NewChatEventsAdapter(*rabbit.EventsRabbitConnection),
+	)
+
+	chat, err := chatsHandler.Execute(chatID, tokenSubject.UserId, members)
+	if err != nil {
+		return model.ErrorResponse{Message: err.Error()}, nil
+	}
+
+	return factories.ChatModelToResponse(*chat), nil
+}
+
+// RemoveAdmins is the resolver for the removeAdmins field.
+func (r *mutationResolver) RemoveAdmins(ctx context.Context, chatID int, admins []int) (model.ChatErrorResponse, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return model.ErrorResponse{Message: "Token required"}, nil
+	}
+
+	tokenSubject, err := middlewares.GetTokenSubject(token)
+	if err != nil {
+		return model.ErrorResponse{Message: "Incorrect token"}, nil
+	}
+
+	chatsHandler := chats.NewRemoveChatAdminsHandler(
+		database.NewChatsAdapter(*database.DatabaseConnection),
+		rabbit.NewChatEventsAdapter(*rabbit.EventsRabbitConnection),
+	)
+
+	chat, err := chatsHandler.Execute(chatID, tokenSubject.UserId, admins)
+	if err != nil {
+		return model.ErrorResponse{Message: err.Error()}, nil
+	}
+
+	return factories.ChatModelToResponse(*chat), nil
+}
+
+// QuitChat is the resolver for the quitChat field.
+func (r *mutationResolver) QuitChat(ctx context.Context, chatID int) (model.ChatErrorResponse, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return model.ErrorResponse{Message: "Token required"}, nil
+	}
+
+	tokenSubject, err := middlewares.GetTokenSubject(token)
+	if err != nil {
+		return model.ErrorResponse{Message: "Incorrect token"}, nil
+	}
+
+	chatsHandler := chats.NewQuitChatHandler(
+		database.NewChatsAdapter(*database.DatabaseConnection),
+		rabbit.NewChatEventsAdapter(*rabbit.EventsRabbitConnection),
+	)
+
+	chat, err := chatsHandler.Execute(chatID, tokenSubject.UserId)
+	if err != nil {
+		return model.ErrorResponse{Message: err.Error()}, nil
+	}
+
+	return factories.ChatModelToResponse(*chat), nil
+}
+
+// ChangeGroupChat is the resolver for the changeGroupChat field.
+func (r *mutationResolver) ChangeGroupChat(ctx context.Context, chatID int, chatData model.ChangeGroupChatData) (model.ChatErrorResponse, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return model.ErrorResponse{Message: "Token required"}, nil
+	}
+
+	tokenSubject, err := middlewares.GetTokenSubject(token)
+	if err != nil {
+		return model.ErrorResponse{Message: "Incorrect token"}, nil
+	}
+
+	chatsHandler := chats.NewChangeGroupChatHandler(
+		database.NewChatsAdapter(*database.DatabaseConnection),
+		rabbit.NewChatEventsAdapter(*rabbit.EventsRabbitConnection),
+	)
+
+	chat, err := chatsHandler.Execute(chatID, tokenSubject.UserId, chats.NewChangeGroupChatData(chatData.Title))
+	if err != nil {
+		return model.ErrorResponse{Message: err.Error()}, nil
+	}
+
+	return factories.ChatModelToResponse(*chat), nil
+}
+
+// UpdateGroupChatAvatar is the resolver for the updateGroupChatAvatar field.
+func (r *mutationResolver) UpdateGroupChatAvatar(ctx context.Context, chatID int, avatar model.UploadingFile) (model.ChatErrorResponse, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return model.ErrorResponse{Message: "Token required"}, nil
+	}
+
+	tokenSubject, err := middlewares.GetTokenSubject(token)
+	if err != nil {
+		return model.ErrorResponse{Message: "Incorrect token"}, nil
+	}
+
+	chatsHandler := chats.NewUpdateGroupChatAvatar(
+		database.NewChatsAdapter(*database.DatabaseConnection),
+		filesservice.NewFilesAdapter(),
+		rabbit.NewChatEventsAdapter(*rabbit.EventsRabbitConnection),
+	)
+
+	chat, err := chatsHandler.Execute(chatID, tokenSubject.UserId, factories.UploadingFileToModel(avatar))
+	if err != nil {
+		return model.ErrorResponse{Message: err.Error()}, nil
+	}
+
+	return factories.ChatModelToResponse(*chat), nil
+}
+
 // GetChatMessages is the resolver for the getChatMessages field.
 func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, offset *int, limit *int) (model.PaginatedMessagesErrorResponse, error) {
 	token, _ := ctx.Value("token").(*jwt.Token)

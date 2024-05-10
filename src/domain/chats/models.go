@@ -26,6 +26,14 @@ var (
 	SavedMessagesChatType ChatTypes = "saved_messages"
 )
 
+type ChangeGroupChatData struct {
+	title *string
+}
+
+func (model *ChangeGroupChatData) GetTitle() *string {
+	return model.title
+}
+
 type Chat struct {
 	id         int
 	avatar     *files.SavedFile
@@ -171,6 +179,12 @@ func (data *CreateChatData) GetUserId() *int {
 
 func (data *CreateChatData) GetType() ChatTypes {
 	return data.type_
+}
+
+func NewChangeGroupChatData(title *string) ChangeGroupChatData {
+	return ChangeGroupChatData{
+		title: title,
+	}
 }
 
 func NewChat(id int, avatar *files.SavedFile, title string, type_ ChatTypes, members []int, isArchived bool, ownerId int, admins []int) Chat {
