@@ -20,7 +20,7 @@ func RunApi() {
 	defer rabbit.EventsRabbitConnection.Close()
 	defer redisdb.RedisConnection.Close()
 
-	database.DatabaseConnection.AutoMigrate(&database.Chat{}, &database.Message{}, &database.SavedFile{})
+	database.DatabaseConnection.AutoMigrate(&database.Chat{}, &database.Message{}, &database.SavedFile{}, database.Reaction{})
 
 	router := chi.NewRouter()
 
