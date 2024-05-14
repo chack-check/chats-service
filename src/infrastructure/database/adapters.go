@@ -155,7 +155,7 @@ func (adapter ChatsAdapter) GetByIdForUser(id int, userId int) (*chats.Chat, err
 
 func (adapter ChatsAdapter) GetByIdsForUser(ids []int, userId int) []chats.Chat {
 	var foundedChats []Chat
-	result := adapter.db.Preload("Avatar").Where("id = ? AND ? = ANY(members)", ids, userId).Find(&foundedChats)
+	result := adapter.db.Preload("Avatar").Where("id IN ? AND ? = ANY(members)", ids, userId).Find(&foundedChats)
 	if result.Error != nil {
 		return []chats.Chat{}
 	}
@@ -427,7 +427,7 @@ func (adapter MessagesAdapter) GetByIdsForUser(messageIds []int, userId int) []m
 	var dbMessages []Message
 
 	adapter.db.Preload("Chat").Preload("Voice").Preload("Circle").Preload("Attachments").Preload("Reactions").Joins("JOIN chats ON messages.chat_id = chats.id").Preload("Circle").Preload("Voice").Preload("Attachments").Where(
-		"id = ANY(?) AND ? = ANY(chats.members)", messageIds, userId,
+		"messages.id IN ? AND ? = ANY(chats.members)", messageIds, userId,
 	).Find(&dbMessages)
 
 	var modelMessages []messages.Message
