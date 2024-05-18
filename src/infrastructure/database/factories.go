@@ -181,7 +181,7 @@ func DbMessageToModel(message Message) messages.Message {
 	)
 }
 
-func ModelToDbMessage(message messages.Message, voiceId *int, circleId *int, attachments []SavedFile, reactions []Reaction) Message {
+func ModelToDbMessage(message messages.Message, voice *SavedFile, circle *SavedFile, attachments []SavedFile, reactions []Reaction) Message {
 	chat := message.GetChat()
 
 	var content string
@@ -215,8 +215,8 @@ func ModelToDbMessage(message messages.Message, voiceId *int, circleId *int, att
 		ChatId:      uint(chat.GetId()),
 		Type:        string(message.GetType()),
 		Content:     content,
-		VoiceId:     voiceId,
-		CircleId:    circleId,
+		Voice:       voice,
+		Circle:      circle,
 		Attachments: attachments,
 		ReplyToID:   uint(replyToId),
 		Mentioned:   mentioned,
