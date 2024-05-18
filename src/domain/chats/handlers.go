@@ -21,6 +21,7 @@ var (
 	ErrChatNotGroup            = fmt.Errorf("the editing chat is not group")
 	ErrInvalidCreatingChatType = fmt.Errorf("invalid creating chat type. Valid values: group, user, saved_messages")
 	ErrChatNotAdmin            = fmt.Errorf("user is not admin in chat")
+	ErrChatWithSelf            = fmt.Errorf("you can't create chat with self user")
 )
 
 func ValidateUserChatMember(chat Chat, userId int) bool {
@@ -125,6 +126,9 @@ func (handler *CreateChatHandler) createGroupChat(data CreateChatData, currentUs
 func (handler *CreateChatHandler) createUserChat(data CreateChatData, currentUser *users.User) (*Chat, error) {
 	if data.userId == nil {
 		return nil, ErrCreatingNotUserChat
+	}
+	if data.userId == currentUser.GetId() {
+		return nil, ErrChatWithSelf
 	}
 
 	chatUser, err := handler.usersPort.GetById(*data.userId)
