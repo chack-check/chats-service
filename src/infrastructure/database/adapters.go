@@ -8,6 +8,7 @@ import (
 	"github.com/chack-check/chats-service/domain/files"
 	"github.com/chack-check/chats-service/domain/messages"
 	"github.com/chack-check/chats-service/domain/utils"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -248,7 +249,12 @@ func (adapter ChatsAdapter) RestoreChat(chat chats.Chat) (*chats.Chat, error) {
 
 func (adapter ChatsAdapter) CheckChatExists(chat chats.Chat) bool {
 	var count int64
-	adapter.db.Model(&Chat{}).Where("members = ? AND type = ?", chat.GetMembers(), "user").Count(&count)
+	var membersIds pq.Int32Array
+	for _, member := range chat.GetMembers() {
+		membersIds = append(membersIds, int32(member))
+	}
+
+	adapter.db.Model(&Chat{}).Where("members = ? AND type = ?", membersIds, "user").Count(&count)
 	return count > 0
 }
 
