@@ -27,10 +27,11 @@ func GetOrCreateFile(file *files.SavedFile, db gorm.DB) SavedFile {
 	var foundedFile SavedFile
 	db.Where("original_url = ?", file.GetOriginalUrl()).First(&foundedFile)
 
-	if foundedFile.OriginalUrl != file.GetOriginalUrl() {
-		return ModelToDbSavedFile(*file)
+	if foundedFile.ID != 0 {
+		return foundedFile
 	}
 
+	foundedFile.OriginalUrl = file.GetOriginalUrl()
 	foundedFile.OriginalFilename = file.GetOriginalFilename()
 	foundedFile.ConvertedUrl = convertedUrl
 	foundedFile.ConvertedFilename = convertedFilename
@@ -459,17 +460,15 @@ func (adapter MessagesAdapter) getOrCreateReaction(reaction messages.MessageReac
 
 func (adapter MessagesAdapter) Save(message messages.Message) (*messages.Message, error) {
 	circle := GetOrCreateFile(message.GetCircle(), adapter.db)
-	var circleId *int
+	var circlePointer *SavedFile
 	if circle.ID != 0 {
-		id := int(circle.ID)
-		circleId = &id
+		circlePointer = &circle
 	}
 
 	voice := GetOrCreateFile(message.GetVoice(), adapter.db)
-	var voiceId *int
+	var voicePointer *SavedFile
 	if voice.ID != 0 {
-		id := int(voice.ID)
-		voiceId = &id
+		voicePointer = &voice
 	}
 
 	var attachments []SavedFile
@@ -482,7 +481,7 @@ func (adapter MessagesAdapter) Save(message messages.Message) (*messages.Message
 		reactions = append(reactions, adapter.getOrCreateReaction(reaction))
 	}
 
-	dbMessage := ModelToDbMessage(message, voiceId, circleId, attachments, reactions)
+	dbMessage := ModelToDbMessage(message, voicePointer, circlePointer, attachments, reactions)
 	result := adapter.db.Save(&dbMessage)
 	if result.Error != nil {
 		return nil, result.Error
