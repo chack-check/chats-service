@@ -127,7 +127,7 @@ func (handler *CreateChatHandler) createUserChat(data CreateChatData, currentUse
 	if data.userId == nil {
 		return nil, ErrCreatingNotUserChat
 	}
-	if data.userId == currentUser.GetId() {
+	if *data.userId == currentUser.GetId() {
 		return nil, ErrChatWithSelf
 	}
 
