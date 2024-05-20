@@ -149,6 +149,7 @@ type PaginatedMessages struct {
 	Offset int        `json:"offset"`
 	Limit  int        `json:"limit"`
 	Total  int        `json:"total"`
+	ID     int        `json:"id"`
 	Data   []*Message `json:"data,omitempty"`
 }
 

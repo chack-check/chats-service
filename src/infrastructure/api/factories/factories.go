@@ -143,7 +143,7 @@ func MessageModelToResponse(message messages.Message) model.Message {
 	}
 }
 
-func OffsetMessagesToResponse(messages utils.OffsetResponse[messages.Message]) model.PaginatedMessages {
+func OffsetMessagesToResponse(messages utils.OffsetResponse[messages.Message], chatId int) model.PaginatedMessages {
 	data := messages.GetData()
 	var messagesResponse []*model.Message
 	for _, message := range data {
@@ -156,6 +156,7 @@ func OffsetMessagesToResponse(messages utils.OffsetResponse[messages.Message]) m
 		Limit:  messages.GetLimit(),
 		Total:  messages.GetTotal(),
 		Data:   messagesResponse,
+		ID:     chatId,
 	}
 }
 
