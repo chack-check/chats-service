@@ -140,6 +140,7 @@ type PaginatedMessages {
   offset: Int!
   limit: Int!
   total: Int!
+  id: Int!
   data: [Message!]
 }
 

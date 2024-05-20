@@ -509,7 +509,7 @@ func (r *queryResolver) GetChatMessages(ctx context.Context, chatID int, offset 
 		return model.ErrorResponse{Message: err.Error()}, nil
 	}
 
-	response := factories.OffsetMessagesToResponse(*messages)
+	response := factories.OffsetMessagesToResponse(*messages, chatID)
 	return &response, nil
 }
 
@@ -542,7 +542,7 @@ func (r *queryResolver) GetChatMessagesByCursor(ctx context.Context, chatID int,
 		return model.ErrorResponse{Message: err.Error()}, nil
 	}
 
-	response := factories.OffsetMessagesToResponse(*messages)
+	response := factories.OffsetMessagesToResponse(*messages, chatID)
 	return &response, nil
 }
 
