@@ -254,7 +254,7 @@ func (adapter ChatsAdapter) CheckChatExists(chat chats.Chat) bool {
 		membersIds = append(membersIds, int32(member))
 	}
 
-	adapter.db.Model(&Chat{}).Where("members = ? AND type = ?", membersIds, "user").Count(&count)
+	adapter.db.Model(&Chat{}).Where("sort(members) = sort(?) AND type = ?", membersIds, "user").Count(&count)
 	return count > 0
 }
 
