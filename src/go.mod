@@ -33,6 +33,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/streadway/amqp v1.1.0
 	github.com/stretchr/testify v1.8.3 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect

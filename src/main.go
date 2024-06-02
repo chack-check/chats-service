@@ -8,6 +8,6 @@ import (
 
 func main() {
 	go grpcservice.RunGrpcServer()
-	go rabbit.StartConsumer("chats-service")
+	rabbit.StartConsumer("chats-service")
 	api.RunApi()
 }
