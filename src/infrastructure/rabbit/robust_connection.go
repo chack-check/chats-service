@@ -36,8 +36,8 @@ func NewQueue(url string, qName string, exchangeName string) *queue {
 
 func (q *queue) Send(message string, contentType string) {
 	err := q.channel.Publish(
+		q.exchangeName,
 		"",
-		q.name,
 		false,
 		false,
 		amqp.Publishing{
@@ -102,7 +102,7 @@ func (q *queue) connect() {
 func (q *queue) declareQueue() {
 	_, err := q.channel.QueueDeclare(
 		q.name,
-		false,
+		true,
 		false,
 		false,
 		false,
