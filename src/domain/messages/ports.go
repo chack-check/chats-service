@@ -12,6 +12,7 @@ type MessagesPort interface {
 	GetChatsLast(chatIds []int, userId int) []Message
 	GetByIdForUser(messageId int, userId int) (*Message, error)
 	GetByIdsForUser(messageIds []int, userId int) []Message
+	GetById(messageId int) (*Message, error)
 	Save(message Message) (*Message, error)
 	Delete(message Message)
 }
@@ -135,4 +136,8 @@ func NewGetMessagesByidsHandler(
 	return GetMessagesByIdsHandler{
 		messagesPort: messagesPort,
 	}
+}
+
+func NewRecognizeMessageHandler(messagesPort MessagesPort, messageEventsPort MessageEventsPort) RecognizeMessageHandler {
+	return RecognizeMessageHandler{messagesPort: messagesPort, messageEventsPort: messageEventsPort}
 }

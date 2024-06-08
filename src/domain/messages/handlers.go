@@ -310,3 +310,24 @@ func (handler *DeleteMessageHandler) Execute(messageId int, userId int) error {
 	handler.messageEventsPort.SendMessageDeleted(*message)
 	return nil
 }
+
+type RecognizeMessageHandler struct {
+	messagesPort      MessagesPort
+	messageEventsPort MessageEventsPort
+}
+
+func (handler *RecognizeMessageHandler) Execute(messageId int, content string) error {
+	message, err := handler.messagesPort.GetById(messageId)
+	if err != nil {
+		return ErrMessageNotFound
+	}
+
+	message.SetContent(&content)
+	_, err = handler.messagesPort.Save(*message)
+	if err != nil {
+		return ErrSavingMessage
+	}
+
+	handler.messageEventsPort.SendMessageUpdated(*message)
+	return nil
+}

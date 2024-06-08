@@ -72,3 +72,9 @@ spec:
                 secretKeyRef:
                   name: chats-service-credentials
                   key: sentry_dsn
+
+            - name: APP_RABBIT_RECOGNITION_QUEUE_NAME
+              value: stage_chats_messages_recognition_queue
+
+            - name: APP_RABBIT_RECOGNITION_EXCHANGE_NAME
+              value: stage_recognition_exchange
