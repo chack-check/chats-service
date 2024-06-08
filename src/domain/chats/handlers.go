@@ -10,6 +10,8 @@ import (
 	"github.com/chack-check/chats-service/domain/utils"
 )
 
+const SAVED_MESSAGES_CHAT_AVATAR_URL string = "https://storage.yandexcloud.net/diffaction/saved-messages-logo.svg"
+
 var (
 	ErrFindingUser             = fmt.Errorf("error finding user")
 	ErrCreatingNotUserChat     = fmt.Errorf("trying to create user chat with not specified user id")
@@ -23,6 +25,19 @@ var (
 	ErrChatNotAdmin            = fmt.Errorf("user is not admin in chat")
 	ErrChatWithSelf            = fmt.Errorf("you can't create chat with self user")
 )
+
+func setupSavedMessagesChatAvatar(chat *Chat) {
+	if chat == nil || chat.GetType() != SavedMessagesChatType {
+		return
+	}
+
+	chat.SetAvatar(files.NewSavedFile(
+		SAVED_MESSAGES_CHAT_AVATAR_URL,
+		"saved-messages-logo.svg",
+		nil,
+		nil,
+	))
+}
 
 func ValidateUserChatMember(chat Chat, userId int) bool {
 	return slices.Contains(chat.GetMembers(), userId)
@@ -202,6 +217,7 @@ func (handler *CreateSavedMessagesChat) Execute(data CreateChatData, currentUser
 		return nil, errors.Join(ErrSavingChat, err)
 	}
 
+	setupSavedMessagesChatAvatar(savedChat)
 	return savedChat, nil
 }
 
@@ -234,6 +250,7 @@ func (handler *GetChatsHandler) Execute(userId int, page int, perPage int) utils
 	chatsWithUsersData := SetupUserChatsData(paginatedChats.GetData(), fetchedUsers, userId)
 	var completeChats []Chat
 	for _, chat := range chatsWithUsersData {
+		setupSavedMessagesChatAvatar(&chat)
 		chatActions := handler.userActionsPort.GetAllChatActionsUsers(chat)
 		chat.SetupActions(chatActions)
 		completeChats = append(completeChats, chat)
@@ -256,6 +273,7 @@ func (handler *GetChatsByIdsHandler) Execute(chatIds []int, userId int) []Chat {
 	chatsWithUsersData := SetupUserChatsData(chats, fetchedUsers, userId)
 	var completeChats []Chat
 	for _, chat := range chatsWithUsersData {
+		setupSavedMessagesChatAvatar(&chat)
 		chatActions := handler.userActionsPort.GetAllChatActionsUsers(chat)
 		chat.SetupActions(chatActions)
 		completeChats = append(completeChats, chat)
@@ -291,6 +309,7 @@ func (handler *GetChatHandler) Execute(userId int, chatId int) (*Chat, error) {
 	}
 
 	chatActions := handler.userActionsPort.GetAllChatActionsUsers(*chat)
+	setupSavedMessagesChatAvatar(chat)
 	chat.SetupActions(chatActions)
 	chat.SetupUserData(anotherUser)
 	return chat, nil

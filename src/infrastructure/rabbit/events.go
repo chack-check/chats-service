@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/chack-check/chats-service/domain/chats"
+	"github.com/chack-check/chats-service/domain/messages"
 	"github.com/chack-check/chats-service/infrastructure/database"
 )
 
@@ -23,6 +24,11 @@ func NewSystemEvent(eventType string, includedUsers []int, data interface{}) (*S
 	return &SystemEvent{IncludedUsers: includedUsers, EventType: eventType, Data: string(json_data)}, nil
 }
 
+type RecognitionEvent struct {
+	MessageId int    `json:"message_id"`
+	Content   string `json:"content"`
+}
+
 func HandleUserCreated(event SystemEvent) {
 	var eventUser EventUser
 	err := json.Unmarshal([]byte(event.Data), &eventUser)
@@ -35,4 +41,12 @@ func HandleUserCreated(event SystemEvent) {
 		database.NewChatsAdapter(*database.DatabaseConnection),
 	)
 	handler.Execute(data, eventUser.Id)
+}
+
+func HandleMessageRecognized(messageId int, content string) {
+	handler := messages.NewRecognizeMessageHandler(
+		database.NewMessagesAdapter(*database.DatabaseConnection),
+		NewMessageEventsAdapter(*EventsRabbitConnection),
+	)
+	handler.Execute(messageId, content)
 }

@@ -306,6 +306,13 @@ func (adapter MessagesLoggingAdapter) GetByIdsForUser(messageIds []int, userId i
 	return messages
 }
 
+func (adapter MessagesLoggingAdapter) GetById(messageId int) (*messages.Message, error) {
+	log.Printf("fetching message by id messageId=%v", messageId)
+	message, err := adapter.adapter.GetById(messageId)
+	log.Printf("fetched message: %+v", message)
+	return message, err
+}
+
 func (adapter MessagesLoggingAdapter) Save(message messages.Message) (*messages.Message, error) {
 	log.Printf("saving message: %+v", message)
 	savedMessage, err := adapter.adapter.Save(message)
@@ -400,7 +407,7 @@ func (adapter MessagesAdapter) GetChatsLast(chatIds []int, userId int) []message
 	return messages
 }
 
-func (adapter MessagesAdapter) getByid(messageId int) (*messages.Message, error) {
+func (adapter MessagesAdapter) GetById(messageId int) (*messages.Message, error) {
 	var dbMessage Message
 
 	result := adapter.db.Preload("Chat").Preload("Voice").Preload("Circle").Preload("Attachments").Preload("Reactions").Joins("JOIN chats ON messages.chat_id = chats.id").Preload("Circle").Preload("Voice").Preload("Attachments").Where(
@@ -493,7 +500,7 @@ func (adapter MessagesAdapter) Save(message messages.Message) (*messages.Message
 		return nil, result.Error
 	}
 
-	savedMessage, err := adapter.getByid(int(dbMessage.ID))
+	savedMessage, err := adapter.GetById(int(dbMessage.ID))
 	if err != nil {
 		return nil, err
 	}
