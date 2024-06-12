@@ -16,6 +16,7 @@ type ChatsPort interface {
 	RestoreChat(chat Chat) (*Chat, error)
 	CheckChatExists(chat Chat) bool
 	Delete(chat Chat)
+	SearchChats(userId int, query string, page int, perPage int) utils.PaginatedResponse[Chat]
 }
 
 type ChatEventsPort interface {
@@ -186,5 +187,13 @@ func NewUpdateGroupChatAvatar(chatsPort ChatsPort, filesPort files.FilesPort, ch
 		chatsPort:      chatsPort,
 		filesPort:      filesPort,
 		chatEventsPort: chatEventsPort,
+	}
+}
+
+func NewSearchChatsHandler(chatsPort ChatsPort, usersPort users.UsersPort, userActionsPort UserActionsPort) SearchChatsHandler {
+	return SearchChatsHandler{
+		chatsPort:       chatsPort,
+		usersPort:       usersPort,
+		userActionsPort: userActionsPort,
 	}
 }

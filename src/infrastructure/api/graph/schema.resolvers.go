@@ -640,6 +640,42 @@ func (r *queryResolver) GetLastMessagesForChats(ctx context.Context, chatIds []i
 	return model.MessagesArray{Messages: response}, nil
 }
 
+// SearchChats is the resolver for the searchChats field.
+func (r *queryResolver) SearchChats(ctx context.Context, query string, page *int, perPage *int) (model.PaginatedChatsErrorResponse, error) {
+	token, _ := ctx.Value("token").(*jwt.Token)
+	if err := utils.UserRequired(token); err != nil {
+		return model.ErrorResponse{Message: "Token required"}, nil
+	}
+
+	tokenSubject, err := middlewares.GetTokenSubject(token)
+	if err != nil {
+		return model.ErrorResponse{Message: "Incorrect token"}, nil
+	}
+
+	var pageValue int = 1
+	var perPageValue int = 100
+	if page != nil && *page > 0 {
+		pageValue = *page
+	}
+	if perPage != nil && *perPage > 0 {
+		perPageValue = *perPage
+	}
+
+	searchHandler := chats.NewSearchChatsHandler(
+		database.NewChatsAdapter(*database.DatabaseConnection),
+		usersproto.NewUsersAdapter(usersproto.UsersClientConnect()),
+		redisdb.NewUserActionsAdapter(redisdb.RedisConnection),
+	)
+
+	chats := searchHandler.Execute(tokenSubject.UserId, query, pageValue, perPageValue)
+	var response []*model.Chat
+	for _, chat := range chats.GetData() {
+		chatResponse := factories.ChatModelToResponse(chat)
+		response = append(response, &chatResponse)
+	}
+	return model.PaginatedChats{Page: chats.GetPage(), NumPages: chats.GetPagesCount(), PagesCount: chats.GetPagesCount(), Total: chats.GetTotal(), Data: response}, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

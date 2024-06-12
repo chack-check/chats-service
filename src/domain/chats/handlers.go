@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/chack-check/chats-service/domain/files"
 	"github.com/chack-check/chats-service/domain/users"
@@ -295,6 +296,7 @@ func (handler *GetChatHandler) Execute(userId int, chatId int) (*Chat, error) {
 	}
 
 	if chat.GetType() != "user" {
+		setupSavedMessagesChatAvatar(chat)
 		return chat, nil
 	}
 
@@ -309,7 +311,6 @@ func (handler *GetChatHandler) Execute(userId int, chatId int) (*Chat, error) {
 	}
 
 	chatActions := handler.userActionsPort.GetAllChatActionsUsers(*chat)
-	setupSavedMessagesChatAvatar(chat)
 	chat.SetupActions(chatActions)
 	chat.SetupUserData(anotherUser)
 	return chat, nil
@@ -605,4 +606,41 @@ func (handler *UpdateGroupChatAvatar) Execute(chatId int, userId int, newAvatar 
 
 	handler.chatEventsPort.SendChatChanged(*savedChat)
 	return savedChat, nil
+}
+
+type SearchChatsHandler struct {
+	chatsPort       ChatsPort
+	usersPort       users.UsersPort
+	userActionsPort UserActionsPort
+}
+
+func (handler *SearchChatsHandler) Execute(userId int, query string, page int, perPage int) utils.PaginatedResponse[Chat] {
+	chats := handler.chatsPort.SearchChats(userId, query, page, perPage)
+
+	var resultChats []Chat
+
+	for _, chat := range chats.GetData() {
+		if chat.GetType() != "user" {
+			setupSavedMessagesChatAvatar(&chat)
+		} else {
+			anotherUserId := GetAnotherUserIdForUserChat(chat, userId)
+			if anotherUserId == 0 {
+				continue
+			}
+
+			anotherUser, err := handler.usersPort.GetById(anotherUserId)
+			if err != nil || !strings.Contains(strings.ToLower(anotherUser.GetFullName()), strings.ToLower(query)) {
+				continue
+			}
+
+			chatActions := handler.userActionsPort.GetAllChatActionsUsers(chat)
+			chat.SetupActions(chatActions)
+			chat.SetupUserData(anotherUser)
+		}
+
+		resultChats = append(resultChats, chat)
+	}
+
+	chats.SetData(resultChats)
+	return chats
 }
