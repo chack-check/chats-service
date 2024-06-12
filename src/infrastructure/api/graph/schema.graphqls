@@ -178,6 +178,7 @@ type Query {
 	getChats(page: Int, perPage: Int): PaginatedChatsErrorResponse!
 	getChat(chatId: Int!): ChatErrorResponse!
   getLastMessagesForChats(chatIds: [Int!]!): MessagesArrayErrorResponse!
+  searchChats(query: String!, page: Int, perPage: Int): PaginatedChatsErrorResponse!
 }
 
 type Mutation {

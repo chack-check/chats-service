@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"log"
 	"math"
 
@@ -125,6 +126,13 @@ func (adapter ChatsLoggingAdapter) Delete(chat chats.Chat) {
 	log.Printf("deleting chat: %+v", chat)
 	adapter.adapter.Delete(chat)
 	log.Printf("deleted chat")
+}
+
+func (adapter ChatsLoggingAdapter) SearchChats(userId int, query string, page int, perPage int) utils.PaginatedResponse[chats.Chat] {
+	log.Printf("searching chats: query=%s, page=%d, perPage=%d", query, page, perPage)
+	chats := adapter.adapter.SearchChats(userId, query, page, perPage)
+	log.Printf("founded chats count: %d", len(chats.GetData()))
+	return chats
 }
 
 type ChatsAdapter struct {
@@ -260,6 +268,41 @@ func (adapter ChatsAdapter) CheckChatExists(chat chats.Chat) bool {
 
 func (adapter ChatsAdapter) Delete(chat chats.Chat) {
 	adapter.db.Delete(&Chat{ID: uint(chat.GetId())})
+}
+
+func (adapter ChatsAdapter) SearchChats(userId int, query string, page int, perPage int) utils.PaginatedResponse[chats.Chat] {
+	stmt := adapter.db.Model(&Chat{}).Where("(lower(title) LIKE lower(?) OR title = '') AND ? = ANY(members)", fmt.Sprintf("%%%s%%", query), userId)
+	var totalCount int64
+	stmt.Count(&totalCount)
+
+	var foundedChats []*Chat
+	result := stmt.Scopes(Paginate(page, perPage)).Preload("Avatar").Order(
+		"(SELECT created_at FROM messages WHERE chat_id = chats.id ORDER BY created_at DESC LIMIT 1) DESC NULLS LAST",
+	).Find(&foundedChats)
+
+	if result.Error != nil {
+		return utils.NewPaginatedResponse(
+			1, 1, 1, 0, []chats.Chat{},
+		)
+	}
+
+	pagesCount := math.Ceil(float64(totalCount) / float64(perPage))
+	if pagesCount == 0 {
+		pagesCount = 1
+	}
+
+	var chats []chats.Chat
+	for _, chat := range foundedChats {
+		chats = append(chats, DbChatToModel(*chat))
+	}
+
+	return utils.NewPaginatedResponse(
+		page,
+		perPage,
+		int(pagesCount),
+		int(totalCount),
+		chats,
+	)
 }
 
 type MessagesLoggingAdapter struct {
