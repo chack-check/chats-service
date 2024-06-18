@@ -673,7 +673,7 @@ func (r *queryResolver) SearchChats(ctx context.Context, query string, page *int
 		chatResponse := factories.ChatModelToResponse(chat)
 		response = append(response, &chatResponse)
 	}
-	return model.PaginatedChats{Page: chats.GetPage(), NumPages: chats.GetPagesCount(), PagesCount: chats.GetPagesCount(), Total: chats.GetTotal(), Data: response}, nil
+	return model.PaginatedChats{Page: chats.GetPage(), NumPages: chats.GetPagesCount(), PerPage: chats.GetPerPage(), Total: chats.GetTotal(), Data: response}, nil
 }
 
 // Mutation returns MutationResolver implementation.

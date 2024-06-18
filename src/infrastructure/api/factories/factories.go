@@ -227,10 +227,10 @@ func PaginatedChatsToResponse(chats utils.PaginatedResponse[chats.Chat]) model.P
 	}
 
 	return model.PaginatedChats{
-		Page:       chats.GetPage(),
-		NumPages:   chats.GetPagesCount(),
-		PagesCount: chats.GetPagesCount(),
-		Total:      chats.GetTotal(),
-		Data:       chatsResponse,
+		Page:     chats.GetPage(),
+		NumPages: chats.GetPagesCount(),
+		PerPage:  chats.GetPerPage(),
+		Total:    chats.GetTotal(),
+		Data:     chatsResponse,
 	}
 }

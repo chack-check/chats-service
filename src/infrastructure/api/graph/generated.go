@@ -121,11 +121,11 @@ type ComplexityRoot struct {
 	}
 
 	PaginatedChats struct {
-		Data       func(childComplexity int) int
-		NumPages   func(childComplexity int) int
-		Page       func(childComplexity int) int
-		PagesCount func(childComplexity int) int
-		Total      func(childComplexity int) int
+		Data     func(childComplexity int) int
+		NumPages func(childComplexity int) int
+		Page     func(childComplexity int) int
+		PerPage  func(childComplexity int) int
+		Total    func(childComplexity int) int
 	}
 
 	PaginatedMessages struct {
@@ -643,12 +643,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PaginatedChats.Page(childComplexity), true
 
-	case "PaginatedChats.pagesCount":
-		if e.complexity.PaginatedChats.PagesCount == nil {
+	case "PaginatedChats.perPage":
+		if e.complexity.PaginatedChats.PerPage == nil {
 			break
 		}
 
-		return e.complexity.PaginatedChats.PagesCount(childComplexity), true
+		return e.complexity.PaginatedChats.PerPage(childComplexity), true
 
 	case "PaginatedChats.total":
 		if e.complexity.PaginatedChats.Total == nil {
@@ -3945,8 +3945,8 @@ func (ec *executionContext) fieldContext_PaginatedChats_numPages(ctx context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _PaginatedChats_pagesCount(ctx context.Context, field graphql.CollectedField, obj *model.PaginatedChats) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_PaginatedChats_pagesCount(ctx, field)
+func (ec *executionContext) _PaginatedChats_perPage(ctx context.Context, field graphql.CollectedField, obj *model.PaginatedChats) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PaginatedChats_perPage(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3959,7 +3959,7 @@ func (ec *executionContext) _PaginatedChats_pagesCount(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.PagesCount, nil
+		return obj.PerPage, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3976,7 +3976,7 @@ func (ec *executionContext) _PaginatedChats_pagesCount(ctx context.Context, fiel
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_PaginatedChats_pagesCount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_PaginatedChats_perPage(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PaginatedChats",
 		Field:      field,
@@ -7890,8 +7890,8 @@ func (ec *executionContext) _PaginatedChats(ctx context.Context, sel ast.Selecti
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "pagesCount":
-			out.Values[i] = ec._PaginatedChats_pagesCount(ctx, field, obj)
+		case "perPage":
+			out.Values[i] = ec._PaginatedChats_perPage(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
