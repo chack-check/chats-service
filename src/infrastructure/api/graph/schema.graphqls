@@ -102,7 +102,7 @@ type Chat {
 type PaginatedChats {
   page: Int!
   numPages: Int!
-  pagesCount: Int!
+  perPage: Int!
   total: Int!
   data: [Chat!]!
 }

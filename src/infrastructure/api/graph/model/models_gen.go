@@ -136,11 +136,11 @@ type MessagesArray struct {
 func (MessagesArray) IsMessagesArrayErrorResponse() {}
 
 type PaginatedChats struct {
-	Page       int     `json:"page"`
-	NumPages   int     `json:"numPages"`
-	PagesCount int     `json:"pagesCount"`
-	Total      int     `json:"total"`
-	Data       []*Chat `json:"data"`
+	Page     int     `json:"page"`
+	NumPages int     `json:"numPages"`
+	PerPage  int     `json:"perPage"`
+	Total    int     `json:"total"`
+	Data     []*Chat `json:"data"`
 }
 
 func (PaginatedChats) IsPaginatedChatsErrorResponse() {}
