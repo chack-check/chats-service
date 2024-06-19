@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/chack-check/chats-service/domain/files"
 	"github.com/chack-check/chats-service/domain/users"
@@ -617,25 +616,15 @@ type SearchChatsHandler struct {
 func (handler *SearchChatsHandler) Execute(userId int, query string, page int, perPage int) utils.PaginatedResponse[Chat] {
 	chats := handler.chatsPort.SearchChats(userId, query, page, perPage)
 
+	fetchingUsers := GetUserChatsUsersIds(chats.GetData(), userId)
+	fetchedUsers := handler.usersPort.GetByIds(fetchingUsers)
+	chatsWithUsersData := SetupUserChatsData(chats.GetData(), fetchedUsers, userId)
+
 	var resultChats []Chat
 
-	for _, chat := range chats.GetData() {
+	for _, chat := range chatsWithUsersData {
 		if chat.GetType() != "user" {
 			setupSavedMessagesChatAvatar(&chat)
-		} else {
-			anotherUserId := GetAnotherUserIdForUserChat(chat, userId)
-			if anotherUserId == 0 {
-				continue
-			}
-
-			anotherUser, err := handler.usersPort.GetById(anotherUserId)
-			if err != nil || !strings.Contains(strings.ToLower(anotherUser.GetFullName()), strings.ToLower(query)) {
-				continue
-			}
-
-			chatActions := handler.userActionsPort.GetAllChatActionsUsers(chat)
-			chat.SetupActions(chatActions)
-			chat.SetupUserData(anotherUser)
 		}
 
 		resultChats = append(resultChats, chat)
