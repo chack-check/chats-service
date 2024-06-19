@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/chack-check/chats-service/domain/files"
 	"github.com/chack-check/chats-service/domain/users"
@@ -623,8 +624,12 @@ func (handler *SearchChatsHandler) Execute(userId int, query string, page int, p
 	var resultChats []Chat
 
 	for _, chat := range chatsWithUsersData {
-		if chat.GetType() != "user" {
+		if chat.GetType() == SavedMessagesChatType {
 			setupSavedMessagesChatAvatar(&chat)
+		}
+
+		if chat.GetType() == UserChatType && !strings.Contains(strings.ToLower(chat.GetTitle()), strings.ToLower(query)) {
+			continue
 		}
 
 		resultChats = append(resultChats, chat)
