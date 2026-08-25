@@ -1,7 +1,12 @@
-dev:
-	docker compose -f docker-compose.dev.yml down
-	docker compose -f docker-compose.dev.yml up --build
-test:
-	docker compose -f docker-compose.test.yml up --build -d
-	docker compose -f docker-compose.test.yml exec -it test-service go test -v ./... && docker compose -f docker-compose.test.yml down -v
-	docker compose -f docker-compose.test.yml down -v
+DB_USER_NAME = "chats_service"
+DB_NAME = "chats_service"
+
+
+up:
+	docker compose up --build -d --remove-orphans
+down:
+	docker compose down
+logs:
+	docker compose logs -f chats-service
+dbshell:
+	docker compose exec -it chats-service-db psql -U $(DB_USER_NAME) -d $(DB_NAME)
