@@ -16,7 +16,7 @@ $ docker network create chack-check-network
 После этого можно запустить приложение через `make`:
 
 ```
-$ make dev
+$ make up
 ```
 
 ## GraphiQL

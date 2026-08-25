@@ -1,0 +1,59 @@
+services:
+  chats-service-redis:
+    image: redis:alpine
+    networks:
+      - chack-check-network
+  chats-service-db:
+    image: postgres:16.0-alpine
+    env_file:
+      - .env
+    networks:
+      - chack-check-network
+    volumes:
+      - chats-service-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "psql", "-U", "chats_service", "-w", "-c", "SELECT 1;" ]
+      timeout: 0.5s
+      interval: 0.5s
+      retries: 100
+  chats-service-rabbitmq:
+    image: rabbitmq:management
+    restart: always
+    ports:
+      - 15672:15672
+      - 5672:5672
+    env_file:
+      - .env
+    networks:
+      - chack-check-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+  chats-service:
+    build: .
+    user: app
+    ports:
+      - 8001:8001
+      - 9091:9091
+    env_file:
+      - .env
+    networks:
+      - chack-check-network
+    depends_on:
+      chats-service-db:
+        condition: service_healthy
+      chats-service-redis:
+        condition: service_started
+      chats-service-rabbitmq:
+        condition: service_healthy
+
+networks:
+  chack-check-network:
+    name: chack-check-network
+    external: true
+
+volumes:
+  chats-service-pgdata:
