@@ -6,13 +6,15 @@ USER app
 
 WORKDIR /home/app/
 
-COPY src/go.mod src/go.sum /home/app/
+COPY go.mod go.sum /home/app/
 
 RUN go mod download
 
-COPY src/ /home/app/
+COPY internal/ ./internal/
 
-RUN go build -o server .
+COPY cmd/ ./cmd/
+
+RUN go build -o server ./cmd/server/
 
 
 FROM alpine
