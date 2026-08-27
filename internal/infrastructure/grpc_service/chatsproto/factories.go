@@ -3,23 +3,21 @@ package chatsproto
 import (
 	"time"
 
-	"chats-service/internal/domain/chats"
-	"chats-service/internal/domain/files"
-	"chats-service/internal/domain/messages"
-	"chats-service/internal/domain/utils"
+	"chats-service/internal/domain/dtos"
+	"chats-service/internal/domain/entities"
 	"chats-service/internal/infrastructure/grpc_service/chatsproto/chatsprotobuf"
 )
 
-func SavedFileToProto(file files.SavedFile) *chatsprotobuf.SavedFile {
+func SavedFileToProto(file entities.SavedFile) *chatsprotobuf.SavedFile {
 	return &chatsprotobuf.SavedFile{
-		OriginalUrl:       file.GetOriginalUrl(),
+		OriginalUrl:       file.GetOriginalURL(),
 		OriginalFilename:  file.GetOriginalFilename(),
-		ConvertedUrl:      file.GetConvertedUrl(),
+		ConvertedUrl:      file.GetConvertedURL(),
 		ConvertedFilename: file.GetConvertedFilename(),
 	}
 }
 
-func ChatModelToProto(chat chats.Chat) *chatsprotobuf.ChatResponse {
+func ChatModelToProto(chat entities.Chat) *chatsprotobuf.ChatResponse {
 	var avatar *chatsprotobuf.SavedFile
 	if file := chat.GetAvatar(); file != nil {
 		avatar = SavedFileToProto(*file)
@@ -36,25 +34,25 @@ func ChatModelToProto(chat chats.Chat) *chatsprotobuf.ChatResponse {
 	}
 
 	return &chatsprotobuf.ChatResponse{
-		Id:         int32(chat.GetId()),
+		Id:         int32(chat.GetID()),
 		Avatar:     avatar,
 		Title:      chat.GetTitle(),
 		Type:       string(chat.GetType()),
 		MembersIds: members,
 		IsArchived: chat.GetIsArchived(),
-		OwnerId:    int32(chat.GetOwnerId()),
+		OwnerId:    int32(chat.GetOwnerID()),
 		AdminsIds:  admins,
 	}
 }
 
-func ReactionToProto(reaction messages.MessageReaction) *chatsprotobuf.MessageReaction {
+func ReactionToProto(reaction entities.MessageReaction) *chatsprotobuf.MessageReaction {
 	return &chatsprotobuf.MessageReaction{
-		UserId:  int32(reaction.GetUserId()),
+		UserId:  int32(reaction.GetUserID()),
 		Content: reaction.GetContent(),
 	}
 }
 
-func MessageToProto(message messages.Message) *chatsprotobuf.MessageResponse {
+func MessageToProto(message entities.Message) *chatsprotobuf.MessageResponse {
 	var voice *chatsprotobuf.SavedFile
 	if file := message.GetVoice(); file != nil {
 		voice = SavedFileToProto(*file)
@@ -71,8 +69,8 @@ func MessageToProto(message messages.Message) *chatsprotobuf.MessageResponse {
 	}
 
 	var replyToID *int32
-	if message.GetReplyToId() != nil {
-		replyToID32 := int32(*message.GetReplyToId())
+	if message.GetReplyToID() != nil {
+		replyToID32 := int32(*message.GetReplyToID())
 		replyToID = &replyToID32
 	}
 
@@ -99,9 +97,9 @@ func MessageToProto(message messages.Message) *chatsprotobuf.MessageResponse {
 
 	chat := message.GetChat()
 	return &chatsprotobuf.MessageResponse{
-		Id:          int32(message.GetId()),
-		SenderId:    int32(message.GetSenderId()),
-		ChatId:      int32(chat.GetId()),
+		Id:          int32(message.GetID()),
+		SenderId:    int32(message.GetSenderID()),
+		ChatId:      int32(chat.GetID()),
 		Type:        string(message.GetType()),
 		Content:     message.GetContent(),
 		Voice:       voice,
@@ -115,7 +113,7 @@ func MessageToProto(message messages.Message) *chatsprotobuf.MessageResponse {
 	}
 }
 
-func OffsetMessagesToProto(offsetMessages utils.OffsetResponse[messages.Message]) *chatsprotobuf.PaginatedMessages {
+func OffsetMessagesToProto(offsetMessages dtos.OffsetResponse[entities.Message]) *chatsprotobuf.PaginatedMessages {
 	data := make([]*chatsprotobuf.MessageResponse, 0, len(offsetMessages.GetData()))
 	for _, message := range offsetMessages.GetData() {
 		data = append(data, MessageToProto(message))

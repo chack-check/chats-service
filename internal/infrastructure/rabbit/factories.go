@@ -1,24 +1,21 @@
 package rabbit
 
 import (
-	"chats-service/internal/domain/chats"
-	"chats-service/internal/domain/files"
-	"chats-service/internal/domain/messages"
-	"chats-service/internal/domain/users"
+	"chats-service/internal/domain/entities"
 )
 
-func SavedFileToEventSavedFile(file files.SavedFile) EventSavedFile {
+func SavedFileToEventSavedFile(file entities.SavedFile) EventSavedFile {
 	return EventSavedFile{
-		OriginalUrl:       file.GetOriginalUrl(),
+		OriginalUrl:       file.GetOriginalURL(),
 		OriginalFilename:  file.GetOriginalFilename(),
-		ConvertedUrl:      file.GetConvertedUrl(),
+		ConvertedUrl:      file.GetConvertedURL(),
 		ConvertedFilename: file.GetConvertedFilename(),
 	}
 }
 
-func ActionUserToEventActionUser(user users.ActionUser) EventActionUser {
+func ActionUserToEventActionUser(user entities.ActionUser) EventActionUser {
 	return EventActionUser{
-		Id:         user.GetId(),
+		Id:         user.GetID(),
 		LastName:   user.GetLastName(),
 		FirstName:  user.GetFirstName(),
 		MiddleName: user.GetMiddleName(),
@@ -26,7 +23,7 @@ func ActionUserToEventActionUser(user users.ActionUser) EventActionUser {
 	}
 }
 
-func ChatToChatEvent(chat chats.Chat) ChatEvent {
+func ChatToChatEvent(chat entities.Chat) ChatEvent {
 	var avatar *EventSavedFile
 	if file := chat.GetAvatar(); file != nil {
 		eventFile := SavedFileToEventSavedFile(*file)
@@ -44,26 +41,26 @@ func ChatToChatEvent(chat chats.Chat) ChatEvent {
 	}
 
 	return ChatEvent{
-		Id:         chat.GetId(),
+		Id:         chat.GetID(),
 		Avatar:     avatar,
 		Title:      chat.GetTitle(),
 		Type:       string(chat.GetType()),
 		Members:    chat.GetMembers(),
 		IsArchived: chat.GetIsArchived(),
-		OwnerId:    chat.GetOwnerId(),
+		OwnerId:    chat.GetOwnerID(),
 		Admins:     chat.GetAdmins(),
 		Actions:    actions,
 	}
 }
 
-func MessageReactionToEventReaction(reaction messages.MessageReaction) EventMessageReaction {
+func MessageReactionToEventReaction(reaction entities.MessageReaction) EventMessageReaction {
 	return EventMessageReaction{
-		UserId:  reaction.GetUserId(),
+		UserId:  reaction.GetUserID(),
 		Content: reaction.GetContent(),
 	}
 }
 
-func MessageToMessageEvent(message messages.Message) MessageEvent {
+func MessageToMessageEvent(message entities.Message) MessageEvent {
 	chat := message.GetChat()
 	var eventVoice *EventSavedFile
 	if voice := message.GetVoice(); voice != nil {
@@ -90,15 +87,15 @@ func MessageToMessageEvent(message messages.Message) MessageEvent {
 	}
 
 	return MessageEvent{
-		Id:          message.GetId(),
-		SenderId:    message.GetSenderId(),
-		ChatId:      chat.GetId(),
+		Id:          message.GetID(),
+		SenderId:    message.GetSenderID(),
+		ChatId:      chat.GetID(),
 		Type:        string(message.GetType()),
 		Content:     message.GetContent(),
 		Voice:       eventVoice,
 		Circle:      eventCircle,
 		Attachments: attachments,
-		ReplyToId:   message.GetReplyToId(),
+		ReplyToId:   message.GetReplyToID(),
 		Mentioned:   message.GetMentioned(),
 		ReadedBy:    message.GetReadedBy(),
 		Reactions:   reactions,

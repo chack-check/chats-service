@@ -3,13 +3,13 @@ package database
 import (
 	"time"
 
-	"chats-service/internal/domain/chats"
-	"chats-service/internal/domain/files"
-	"chats-service/internal/domain/messages"
+	"chats-service/internal/domain/constants"
+	"chats-service/internal/domain/entities"
+
 	"github.com/lib/pq"
 )
 
-func DbSavedFileToModel(file SavedFile) files.SavedFile {
+func DbSavedFileToModel(file SavedFile) entities.SavedFile {
 	var convertedURL *string
 	var convertedFilename *string
 	if file.ConvertedUrl == "" {
@@ -20,7 +20,7 @@ func DbSavedFileToModel(file SavedFile) files.SavedFile {
 		convertedFilename = &file.ConvertedFilename
 	}
 
-	return files.NewSavedFile(
+	return entities.NewSavedFile(
 		file.OriginalUrl,
 		file.OriginalFilename,
 		convertedURL,
@@ -28,10 +28,10 @@ func DbSavedFileToModel(file SavedFile) files.SavedFile {
 	)
 }
 
-func ModelToDbSavedFile(file files.SavedFile) SavedFile {
+func ModelToDbSavedFile(file entities.SavedFile) SavedFile {
 	var convertedURL string
 	var convertedFilename string
-	if url := file.GetConvertedUrl(); url != nil {
+	if url := file.GetConvertedURL(); url != nil {
 		convertedURL = *url
 		filename := file.GetConvertedFilename()
 		convertedFilename = *filename
@@ -41,15 +41,15 @@ func ModelToDbSavedFile(file files.SavedFile) SavedFile {
 	}
 
 	return SavedFile{
-		OriginalUrl:       file.GetOriginalUrl(),
+		OriginalUrl:       file.GetOriginalURL(),
 		OriginalFilename:  file.GetOriginalFilename(),
 		ConvertedUrl:      convertedURL,
 		ConvertedFilename: convertedFilename,
 	}
 }
 
-func DbChatToModel(chat Chat) chats.Chat {
-	var avatar *files.SavedFile
+func DbChatToModel(chat Chat) entities.Chat {
+	var avatar *entities.SavedFile
 	if chat.AvatarId != nil {
 		savedFile := DbSavedFileToModel(chat.Avatar)
 		avatar = &savedFile
@@ -65,11 +65,11 @@ func DbChatToModel(chat Chat) chats.Chat {
 		admins = append(admins, int(admin))
 	}
 
-	return chats.NewChat(
+	return entities.NewChat(
 		int(chat.ID),
 		avatar,
 		chat.Title,
-		chats.ChatTypes(chat.Type),
+		constants.ChatTypes(chat.Type),
 		members,
 		chat.IsArchived,
 		int(chat.OwnerId),
@@ -77,7 +77,7 @@ func DbChatToModel(chat Chat) chats.Chat {
 	)
 }
 
-func ModelToDbChat(chat chats.Chat, avatar SavedFile) Chat {
+func ModelToDbChat(chat entities.Chat, avatar SavedFile) Chat {
 	var avatarID *uint
 	if avatar.OriginalUrl != "" {
 		id := avatar.ID
@@ -95,27 +95,27 @@ func ModelToDbChat(chat chats.Chat, avatar SavedFile) Chat {
 	}
 
 	return Chat{
-		ID:         uint(chat.GetId()),
+		ID:         uint(chat.GetID()),
 		AvatarId:   avatarID,
 		Avatar:     avatar,
 		Title:      chat.GetTitle(),
 		Type:       string(chat.GetType()),
 		Members:    members,
 		IsArchived: chat.GetIsArchived(),
-		OwnerId:    uint(chat.GetOwnerId()),
+		OwnerId:    uint(chat.GetOwnerID()),
 		Admins:     admins,
 	}
 }
 
-func DbMessageReactionToModel(reaction Reaction) messages.MessageReaction {
-	return messages.NewMessageReaction(
+func DbMessageReactionToModel(reaction Reaction) entities.MessageReaction {
+	return entities.NewMessageReaction(
 		int(reaction.UserId),
 		reaction.Content,
 	)
 }
 
-func DbMessageToModel(message Message) messages.Message {
-	var voice *files.SavedFile
+func DbMessageToModel(message Message) entities.Message {
+	var voice *entities.SavedFile
 	if message.Voice == nil {
 		voice = nil
 	} else {
@@ -123,7 +123,7 @@ func DbMessageToModel(message Message) messages.Message {
 		voice = &savedFile
 	}
 
-	var circle *files.SavedFile
+	var circle *entities.SavedFile
 	if message.Circle == nil {
 		circle = nil
 	} else {
@@ -131,7 +131,7 @@ func DbMessageToModel(message Message) messages.Message {
 		circle = &savedFile
 	}
 
-	attachments := make([]files.SavedFile, 0, len(message.Attachments))
+	attachments := make([]entities.SavedFile, 0, len(message.Attachments))
 	for _, attachment := range message.Attachments {
 		attachments = append(attachments, DbSavedFileToModel(attachment))
 	}
@@ -157,17 +157,17 @@ func DbMessageToModel(message Message) messages.Message {
 		deletedFor = append(deletedFor, int(user))
 	}
 
-	reactions := make([]messages.MessageReaction, 0, len(message.Reactions))
+	reactions := make([]entities.MessageReaction, 0, len(message.Reactions))
 	for _, reaction := range message.Reactions {
 		reactionModel := DbMessageReactionToModel(reaction)
 		reactions = append(reactions, reactionModel)
 	}
 
-	return messages.NewMessage(
+	return entities.NewMessage(
 		int(message.ID),
 		int(message.SenderId),
 		DbChatToModel(message.Chat),
-		messages.MessageTypes(message.Type),
+		constants.MessageTypes(message.Type),
 		&message.Content,
 		voice,
 		circle,
@@ -181,7 +181,7 @@ func DbMessageToModel(message Message) messages.Message {
 	)
 }
 
-func ModelToDbMessage(message messages.Message, voice *SavedFile, circle *SavedFile, attachments []SavedFile, reactions []Reaction) Message {
+func ModelToDbMessage(message entities.Message, voice *SavedFile, circle *SavedFile, attachments []SavedFile, reactions []Reaction) Message {
 	chat := message.GetChat()
 
 	var content string
@@ -190,7 +190,7 @@ func ModelToDbMessage(message messages.Message, voice *SavedFile, circle *SavedF
 	}
 
 	var replyToID int
-	if messageReplyToID := message.GetReplyToId(); messageReplyToID != nil {
+	if messageReplyToID := message.GetReplyToID(); messageReplyToID != nil {
 		replyToID = *messageReplyToID
 	}
 
@@ -210,9 +210,9 @@ func ModelToDbMessage(message messages.Message, voice *SavedFile, circle *SavedF
 	}
 
 	return Message{
-		ID:          uint(message.GetId()),
-		SenderId:    uint(message.GetSenderId()),
-		ChatId:      uint(chat.GetId()),
+		ID:          uint(message.GetID()),
+		SenderId:    uint(message.GetSenderID()),
+		ChatId:      uint(chat.GetID()),
 		Type:        string(message.GetType()),
 		Content:     content,
 		Voice:       voice,

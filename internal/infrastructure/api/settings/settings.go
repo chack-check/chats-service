@@ -12,6 +12,7 @@ type SettingsSchema struct {
 	APP_ALLOW_ORIGINS string
 }
 
+// TODO: Move all os.Getenv to configuration
 func InitSettings() SettingsSchema {
 	port := os.Getenv("APP_PORT")
 	if port == "" {

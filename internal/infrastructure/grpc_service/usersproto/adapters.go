@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"chats-service/internal/domain/users"
+	"chats-service/internal/application/ports"
+	"chats-service/internal/domain/entities"
 	"chats-service/internal/infrastructure/grpc_service/usersproto/usersprotobuf"
 )
 
@@ -14,10 +15,10 @@ var (
 )
 
 type UsersLoggingAdapter struct {
-	adapter users.UsersPort
+	adapter ports.UsersRepositoryPort
 }
 
-func (adapter UsersLoggingAdapter) GetById(id int) (*users.User, error) {
+func (adapter UsersLoggingAdapter) GetById(id int) (*entities.User, error) {
 	log.Printf("fetching user by id: %d", id)
 	user, err := adapter.adapter.GetById(id)
 	if err != nil {
@@ -29,7 +30,7 @@ func (adapter UsersLoggingAdapter) GetById(id int) (*users.User, error) {
 	return user, err
 }
 
-func (adapter UsersLoggingAdapter) GetByIds(ids []int) []users.User {
+func (adapter UsersLoggingAdapter) GetByIds(ids []int) []entities.User {
 	log.Printf("fetching users by ids: %v", ids)
 	users := adapter.adapter.GetByIds(ids)
 	log.Printf("fetched users: %+v", users)
@@ -40,7 +41,7 @@ type UsersAdapter struct {
 	client usersprotobuf.UsersClient
 }
 
-func (adapter UsersAdapter) GetById(id int) (*users.User, error) {
+func (adapter UsersAdapter) GetById(id int) (*entities.User, error) {
 	user, err := adapter.client.GetUserById(context.Background(), &usersprotobuf.GetUserByIdRequest{Id: int32(id)})
 	if err != nil {
 		log.Printf("error finding user by id %d: %v", id, err)
@@ -51,14 +52,14 @@ func (adapter UsersAdapter) GetById(id int) (*users.User, error) {
 	return &userModel, nil
 }
 
-func (adapter UsersAdapter) GetByIds(ids []int) []users.User {
+func (adapter UsersAdapter) GetByIds(ids []int) []entities.User {
 	userIds := make([]int32, 0, len(ids))
 	for _, id := range ids {
 		userIds = append(userIds, int32(id))
 	}
 
 	foundedUsers, err := adapter.client.GetUsersByIds(context.Background(), &usersprotobuf.GetUsersByIdsRequest{Ids: userIds})
-	var usersModels []users.User
+	var usersModels []entities.User
 	if err != nil {
 		return usersModels
 	}
@@ -71,6 +72,6 @@ func (adapter UsersAdapter) GetByIds(ids []int) []users.User {
 	return usersModels
 }
 
-func NewUsersAdapter(client usersprotobuf.UsersClient) users.UsersPort {
+func NewUsersAdapter(client usersprotobuf.UsersClient) ports.UsersRepositoryPort {
 	return UsersLoggingAdapter{adapter: UsersAdapter{client: client}}
 }

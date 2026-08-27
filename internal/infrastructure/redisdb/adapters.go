@@ -6,13 +6,15 @@ import (
 	"fmt"
 	"log"
 
-	"chats-service/internal/domain/chats"
-	"chats-service/internal/domain/users"
+	"chats-service/internal/application/ports"
+	"chats-service/internal/domain/constants"
+	"chats-service/internal/domain/entities"
+
 	"github.com/redis/go-redis/v9"
 )
 
 type RedisActionUser struct {
-	Id         int
+	ID         int
 	LastName   string
 	FirstName  string
 	MiddleName *string
@@ -20,26 +22,26 @@ type RedisActionUser struct {
 }
 
 type UserActionsLoggingAdapter struct {
-	adapter chats.UserActionsPort
+	repository ports.UserActionsRepositoryPort
 }
 
-func (adapter UserActionsLoggingAdapter) AddChatActionUser(chat chats.Chat, user users.User, actionType chats.ActionTypes) map[chats.ActionTypes][]users.ActionUser {
+func (adapter UserActionsLoggingAdapter) AddChatActionUser(chat entities.Chat, user entities.User, actionType constants.ActionTypes) map[constants.ActionTypes][]entities.ActionUser {
 	log.Printf("adding chat action user: chat=%+v, user=%+v, actionType=%v", chat, user, actionType)
-	actions := adapter.adapter.AddChatActionUser(chat, user, actionType)
+	actions := adapter.repository.AddChatActionUser(chat, user, actionType)
 	log.Printf("chat actions: %+v", actions)
 	return actions
 }
 
-func (adapter UserActionsLoggingAdapter) RemoveChatActionUser(chat chats.Chat, userID int, actionType chats.ActionTypes) map[chats.ActionTypes][]users.ActionUser {
+func (adapter UserActionsLoggingAdapter) RemoveChatActionUser(chat entities.Chat, userID int, actionType constants.ActionTypes) map[constants.ActionTypes][]entities.ActionUser {
 	log.Printf("removing chat action user: chat=%+v, userId=%d, actionType=%v", chat, userID, actionType)
-	actions := adapter.adapter.RemoveChatActionUser(chat, userID, actionType)
+	actions := adapter.repository.RemoveChatActionUser(chat, userID, actionType)
 	log.Printf("chat actions: %+v", actions)
 	return actions
 }
 
-func (adapter UserActionsLoggingAdapter) GetAllChatActionsUsers(chat chats.Chat) map[chats.ActionTypes][]users.ActionUser {
+func (adapter UserActionsLoggingAdapter) GetAllChatActionsUsers(chat entities.Chat) map[constants.ActionTypes][]entities.ActionUser {
 	log.Printf("fetching all chat actions users: chat=%+v", chat)
-	actions := adapter.adapter.GetAllChatActionsUsers(chat)
+	actions := adapter.repository.GetAllChatActionsUsers(chat)
 	log.Printf("chat actions: %+v", actions)
 	return actions
 }
@@ -52,8 +54,8 @@ func (adapter UserActionsAdapter) getChatActionsKey(chatID int) string {
 	return fmt.Sprintf("chat:%d:actions", chatID)
 }
 
-func (adapter UserActionsAdapter) AddChatActionUser(chat chats.Chat, user users.User, actionType chats.ActionTypes) map[chats.ActionTypes][]users.ActionUser {
-	actionUsers, err := adapter.db.HGet(context.Background(), adapter.getChatActionsKey(chat.GetId()), string(actionType)).Result()
+func (adapter UserActionsAdapter) AddChatActionUser(chat entities.Chat, user entities.User, actionType constants.ActionTypes) map[constants.ActionTypes][]entities.ActionUser {
+	actionUsers, err := adapter.db.HGet(context.Background(), adapter.getChatActionsKey(chat.GetID()), string(actionType)).Result()
 	log.Printf("action users: %+v, err: %v", actionUsers, err)
 	if err != nil && err != redis.Nil {
 		return adapter.GetAllChatActionsUsers(chat)
@@ -70,7 +72,7 @@ func (adapter UserActionsAdapter) AddChatActionUser(chat chats.Chat, user users.
 	}
 
 	users = append(users, RedisActionUser{
-		Id:         user.GetId(),
+		ID:         user.GetID(),
 		LastName:   user.GetLastName(),
 		FirstName:  user.GetFirstName(),
 		MiddleName: user.GetMiddleName(),
@@ -82,12 +84,12 @@ func (adapter UserActionsAdapter) AddChatActionUser(chat chats.Chat, user users.
 		return adapter.GetAllChatActionsUsers(chat)
 	}
 
-	adapter.db.HSet(context.Background(), adapter.getChatActionsKey(chat.GetId()), string(actionType), string(usersJSON)).Result()
+	adapter.db.HSet(context.Background(), adapter.getChatActionsKey(chat.GetID()), string(actionType), string(usersJSON)).Result()
 	return adapter.GetAllChatActionsUsers(chat)
 }
 
-func (adapter UserActionsAdapter) RemoveChatActionUser(chat chats.Chat, userID int, actionType chats.ActionTypes) map[chats.ActionTypes][]users.ActionUser {
-	actionUsers, err := adapter.db.HGet(context.Background(), adapter.getChatActionsKey(chat.GetId()), string(actionType)).Result()
+func (adapter UserActionsAdapter) RemoveChatActionUser(chat entities.Chat, userID int, actionType constants.ActionTypes) map[constants.ActionTypes][]entities.ActionUser {
+	actionUsers, err := adapter.db.HGet(context.Background(), adapter.getChatActionsKey(chat.GetID()), string(actionType)).Result()
 	if err != nil || actionUsers == "" {
 		return adapter.GetAllChatActionsUsers(chat)
 	}
@@ -100,7 +102,7 @@ func (adapter UserActionsAdapter) RemoveChatActionUser(chat chats.Chat, userID i
 
 	var resultUsers []RedisActionUser
 	for _, user := range users {
-		if user.Id == userID {
+		if user.ID == userID {
 			continue
 		}
 
@@ -112,28 +114,28 @@ func (adapter UserActionsAdapter) RemoveChatActionUser(chat chats.Chat, userID i
 		return adapter.GetAllChatActionsUsers(chat)
 	}
 
-	adapter.db.HSet(context.Background(), adapter.getChatActionsKey(chat.GetId()), string(actionType), string(usersJSON))
+	adapter.db.HSet(context.Background(), adapter.getChatActionsKey(chat.GetID()), string(actionType), string(usersJSON))
 	return adapter.GetAllChatActionsUsers(chat)
 }
 
-func (adapter UserActionsAdapter) GetAllChatActionsUsers(chat chats.Chat) map[chats.ActionTypes][]users.ActionUser {
-	chatAllActions, err := adapter.db.HGetAll(context.Background(), adapter.getChatActionsKey(chat.GetId())).Result()
+func (adapter UserActionsAdapter) GetAllChatActionsUsers(chat entities.Chat) map[constants.ActionTypes][]entities.ActionUser {
+	chatAllActions, err := adapter.db.HGetAll(context.Background(), adapter.getChatActionsKey(chat.GetID())).Result()
 	if err != nil {
-		return map[chats.ActionTypes][]users.ActionUser{}
+		return map[constants.ActionTypes][]entities.ActionUser{}
 	}
 
-	actions := make(map[chats.ActionTypes][]users.ActionUser)
+	actions := make(map[constants.ActionTypes][]entities.ActionUser)
 	for key, value := range chatAllActions {
-		actionType := chats.ActionTypes(key)
+		actionType := constants.ActionTypes(key)
 		var actionUsers []RedisActionUser
 		err = json.Unmarshal([]byte(value), &actionUsers)
 		if err != nil {
 			continue
 		}
 
-		var actionUsersSchemas []users.ActionUser
+		var actionUsersSchemas []entities.ActionUser
 		for _, user := range actionUsers {
-			actionUsersSchemas = append(actionUsersSchemas, users.NewActionUser(user.Id, user.LastName, user.FirstName, user.MiddleName, user.Username))
+			actionUsersSchemas = append(actionUsersSchemas, entities.NewActionUser(user.ID, user.LastName, user.FirstName, user.MiddleName, user.Username))
 		}
 
 		actions[actionType] = actionUsersSchemas
@@ -142,6 +144,6 @@ func (adapter UserActionsAdapter) GetAllChatActionsUsers(chat chats.Chat) map[ch
 	return actions
 }
 
-func NewUserActionsAdapter(db *redis.Client) chats.UserActionsPort {
-	return UserActionsLoggingAdapter{adapter: UserActionsAdapter{db: db}}
+func NewUserActionsAdapter(db *redis.Client) ports.UserActionsRepositoryPort {
+	return UserActionsLoggingAdapter{repository: UserActionsAdapter{db: db}}
 }

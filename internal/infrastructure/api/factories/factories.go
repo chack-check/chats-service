@@ -3,59 +3,57 @@ package factories
 import (
 	"time"
 
-	"chats-service/internal/domain/chats"
-	"chats-service/internal/domain/files"
-	"chats-service/internal/domain/messages"
-	"chats-service/internal/domain/users"
-	"chats-service/internal/domain/utils"
+	"chats-service/internal/domain/constants"
+	"chats-service/internal/domain/dtos"
+	"chats-service/internal/domain/entities"
 	"chats-service/internal/infrastructure/api/graph/model"
 )
 
-func UploadingFileMetaToModel(meta model.UploadingFileMeta) files.UploadingFileMeta {
-	return files.NewUploadingFileMeta(
+func UploadingFileMetaToModel(meta model.UploadingFileMeta) dtos.UploadingFileMeta {
+	return dtos.NewUploadingFileMeta(
 		meta.URL,
 		meta.Filename,
 		meta.Signature,
-		files.SystemFiletype(meta.SystemFiletype.String()),
+		constants.SystemFiletype(meta.SystemFiletype.String()),
 	)
 }
 
-func UploadingFileToModel(file model.UploadingFile) files.UploadingFile {
+func UploadingFileToModel(file model.UploadingFile) dtos.UploadingFile {
 	original := UploadingFileMetaToModel(*file.Original)
-	var converted *files.UploadingFileMeta
+	var converted *dtos.UploadingFileMeta
 	if convertedMeta := file.Converted; convertedMeta != nil {
 		convertedFile := UploadingFileMetaToModel(*convertedMeta)
 		converted = &convertedFile
 	}
 
-	return files.NewUploadingFile(
+	return dtos.NewUploadingFile(
 		original,
 		converted,
 	)
 }
 
-func CreateMessageRequestToModel(request model.CreateMessageRequest) messages.CreateMessageData {
-	var voice *files.UploadingFile
+func CreateMessageRequestToModel(request model.CreateMessageRequest) dtos.CreateMessageData {
+	var voice *dtos.UploadingFile
 	if request.Voice != nil {
 		file := UploadingFileToModel(*request.Voice)
 		voice = &file
 	}
 
-	var circle *files.UploadingFile
+	var circle *dtos.UploadingFile
 	if request.Circle != nil {
 		file := UploadingFileToModel(*request.Circle)
 		circle = &file
 	}
 
-	attachments := make([]files.UploadingFile, 0, len(request.Attachments))
+	attachments := make([]dtos.UploadingFile, 0, len(request.Attachments))
 	for _, attachment := range request.Attachments {
 		file := UploadingFileToModel(*attachment)
 		attachments = append(attachments, file)
 	}
 
-	return messages.NewCreateMessageData(
+	return dtos.NewCreateMessageData(
 		request.ChatID,
-		messages.MessageTypes(request.Type),
+		constants.MessageTypes(request.Type),
 		request.Content,
 		voice,
 		attachments,
@@ -65,42 +63,42 @@ func CreateMessageRequestToModel(request model.CreateMessageRequest) messages.Cr
 	)
 }
 
-func UpdateMessageRequestToModel(request model.ChangeMessageRequest) messages.UpdateMessageData {
+func UpdateMessageRequestToModel(request model.ChangeMessageRequest) dtos.UpdateMessageData {
 	mentioned := make([]int, 0, len(request.Mentioned))
 	for _, user := range request.Mentioned {
 		mentioned = append(mentioned, *user)
 	}
 
-	attachments := make([]files.UploadingFile, 0, len(request.Attachments))
+	attachments := make([]dtos.UploadingFile, 0, len(request.Attachments))
 	for _, attachment := range request.Attachments {
 		file := UploadingFileToModel(*attachment)
 		attachments = append(attachments, file)
 	}
 
-	return messages.NewUpdateMessageData(
+	return dtos.NewUpdateMessageData(
 		request.Content,
 		attachments,
 		mentioned,
 	)
 }
 
-func SavedFileToResponse(file files.SavedFile) model.SavedFile {
+func SavedFileToResponse(file entities.SavedFile) model.SavedFile {
 	return model.SavedFile{
-		OriginalURL:       file.GetOriginalUrl(),
+		OriginalURL:       file.GetOriginalURL(),
 		OriginalFilename:  file.GetOriginalFilename(),
-		ConvertedURL:      file.GetConvertedUrl(),
+		ConvertedURL:      file.GetConvertedURL(),
 		ConvertedFilename: file.GetConvertedFilename(),
 	}
 }
 
-func ReactionModelToResponse(reaction messages.MessageReaction) model.Reaction {
+func ReactionModelToResponse(reaction entities.MessageReaction) model.Reaction {
 	return model.Reaction{
-		UserID:  reaction.GetUserId(),
+		UserID:  reaction.GetUserID(),
 		Content: reaction.GetContent(),
 	}
 }
 
-func MessageModelToResponse(message messages.Message) model.Message {
+func MessageModelToResponse(message entities.Message) model.Message {
 	chat := message.GetChat()
 	var voice *model.SavedFile
 	if message.GetVoice() != nil {
@@ -127,14 +125,14 @@ func MessageModelToResponse(message messages.Message) model.Message {
 	}
 
 	return model.Message{
-		ID:          message.GetId(),
+		ID:          message.GetID(),
 		Type:        model.MessageType(string(message.GetType())),
-		SenderID:    message.GetSenderId(),
-		ChatID:      chat.GetId(),
+		SenderID:    message.GetSenderID(),
+		ChatID:      chat.GetID(),
 		Content:     message.GetContent(),
 		Voice:       voice,
 		Circle:      circle,
-		ReplyToID:   message.GetReplyToId(),
+		ReplyToID:   message.GetReplyToID(),
 		ReadedBy:    message.GetReadedBy(),
 		Reactions:   reactions,
 		Attachments: attachments,
@@ -143,7 +141,7 @@ func MessageModelToResponse(message messages.Message) model.Message {
 	}
 }
 
-func OffsetMessagesToResponse(messages utils.OffsetResponse[messages.Message], chatID int) model.PaginatedMessages {
+func OffsetMessagesToResponse(messages dtos.OffsetResponse[entities.Message], chatID int) model.PaginatedMessages {
 	data := messages.GetData()
 	messagesResponse := make([]*model.Message, 0, len(data))
 	for _, message := range data {
@@ -160,14 +158,14 @@ func OffsetMessagesToResponse(messages utils.OffsetResponse[messages.Message], c
 	}
 }
 
-func CreateChatRequestToModel(request model.CreateChatRequest, chatType chats.ChatTypes) chats.CreateChatData {
-	var avatar *files.UploadingFile
+func CreateChatRequestToModel(request model.CreateChatRequest, chatType constants.ChatTypes) dtos.CreateChatData {
+	var avatar *dtos.UploadingFile
 	if request.Avatar != nil {
 		file := UploadingFileToModel(*request.Avatar)
 		avatar = &file
 	}
 
-	return chats.NewCreateChatData(
+	return dtos.NewCreateChatData(
 		chatType,
 		avatar,
 		request.Title,
@@ -176,14 +174,14 @@ func CreateChatRequestToModel(request model.CreateChatRequest, chatType chats.Ch
 	)
 }
 
-func ActionUserModelToResponse(user users.ActionUser) model.ChatActionUser {
+func ActionUserModelToResponse(user entities.ActionUser) model.ChatActionUser {
 	return model.ChatActionUser{
 		FullName: user.GetFullName(),
-		ID:       user.GetId(),
+		ID:       user.GetID(),
 	}
 }
 
-func ChatModelToResponse(chat chats.Chat) model.Chat {
+func ChatModelToResponse(chat entities.Chat) model.Chat {
 	var avatar *model.SavedFile
 	if chatAvatar := chat.GetAvatar(); chatAvatar != nil {
 		file := SavedFileToResponse(*chatAvatar)
@@ -206,19 +204,19 @@ func ChatModelToResponse(chat chats.Chat) model.Chat {
 	}
 
 	return model.Chat{
-		ID:         chat.GetId(),
+		ID:         chat.GetID(),
 		Avatar:     avatar,
 		Title:      chat.GetTitle(),
 		Type:       model.ChatType(string(chat.GetType())),
 		Members:    chat.GetMembers(),
 		IsArchived: chat.GetIsArchived(),
-		OwnerID:    chat.GetOwnerId(),
+		OwnerID:    chat.GetOwnerID(),
 		Admins:     chat.GetAdmins(),
 		Actions:    actions,
 	}
 }
 
-func PaginatedChatsToResponse(chats utils.PaginatedResponse[chats.Chat]) model.PaginatedChats {
+func PaginatedChatsToResponse(chats dtos.PaginatedResponse[entities.Chat]) model.PaginatedChats {
 	data := chats.GetData()
 	chatsResponse := make([]*model.Chat, 0, len(data))
 	for _, chat := range data {

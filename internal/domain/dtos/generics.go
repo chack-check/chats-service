@@ -1,4 +1,4 @@
-package utils
+package dtos
 
 type PaginatedResponse[T any] struct {
 	page       int

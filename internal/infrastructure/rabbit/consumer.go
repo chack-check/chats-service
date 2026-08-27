@@ -37,7 +37,7 @@ func StartConsumer(ctag string) error {
 			return
 		}
 
-		HandleMessageRecognized(event.MessageId, event.Content)
+		HandleMessageRecognized(event.MessageID, event.Content)
 	})
 
 	return nil
