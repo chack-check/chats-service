@@ -1,14 +1,13 @@
 package configs
 
 import (
-	"net/url"
 	"sync"
 
 	"github.com/caarlos0/env/v11"
 )
 
 type DatabaseConfiguration struct {
-	DSN url.URL `env:"APP_DATABASE_DSN,required,notEmpty"`
+	DSN string `env:"APP_DATABASE_DSN,required,notEmpty"`
 }
 
 var (

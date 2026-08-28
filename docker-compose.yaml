@@ -1,3 +1,17 @@
+x-chats-service: &chats-service
+  user: app
+  env_file:
+    - .env
+  networks:
+    - chack-check-network
+  depends_on:
+    chats-service-db:
+      condition: service_healthy
+    chats-service-redis:
+      condition: service_started
+    chats-service-rabbitmq:
+      condition: service_healthy
+
 services:
   chats-service-redis:
     image: redis:alpine
@@ -32,23 +46,25 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
-  chats-service:
-    build: .
-    user: app
+  chats-service-api:
+    <<: *chats-service
+    build:
+      context: .
+      target: api
     ports:
       - 8001:8001
+  chats-service-grpcserver:
+    <<: *chats-service
+    build:
+      context: .
+      target: grpcserver
+    ports:
       - 9091:9091
-    env_file:
-      - .env
-    networks:
-      - chack-check-network
-    depends_on:
-      chats-service-db:
-        condition: service_healthy
-      chats-service-redis:
-        condition: service_started
-      chats-service-rabbitmq:
-        condition: service_healthy
+  chats-service-consumer:
+    <<: *chats-service
+    build:
+      context: .
+      target: consumer
 
 networks:
   chack-check-network:
