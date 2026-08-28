@@ -10,8 +10,8 @@ import (
 type APIConfiguration struct {
 	Port                       int     `env:"APP_PORT,required,notEmpty"`
 	SecretKey                  string  `env:"APP_SECRET_KEY,required,notEmpty"`
-	AllowOrigins               string  `env:"APP_ALLOW_ORIGINS,required,notEmpty"`
-	SavedMessagesChatAvatarURL url.URL `env:"APP_SAVED_MESSAGES_CHAT_AVATAR_URL,required,notEmpty"`
+	AllowOrigins               string  `env:"APP_ALLOW_ORIGINS"`
+	SavedMessagesChatAvatarURL url.URL `env:"APP_SAVED_MESSAGES_CHAT_AVATAR_URL"`
 }
 
 var (

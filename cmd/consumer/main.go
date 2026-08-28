@@ -1,18 +1,24 @@
 package main
 
 import (
-	"chats-service/internal/infrastructure/api"
-	grpcservice "chats-service/internal/infrastructure/grpc_service"
 	"chats-service/internal/infrastructure/rabbit"
 	"chats-service/internal/infrastructure/rabbit/publishers"
+	"context"
+	"log"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
-	// TODO: Make 3 cmds and 3 differrent build stages
-	go grpcservice.RunGrpcServer()
-	rabbit.StartConsumer(
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	err := rabbit.StartConsumer(
+		ctx,
 		"chats-service",
 		publishers.NewMessageEventsPublisher(*rabbit.EventsRabbitConnection),
 	)
-	api.RunApi()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

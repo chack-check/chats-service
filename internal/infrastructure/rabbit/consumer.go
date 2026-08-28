@@ -1,6 +1,7 @@
 package rabbit
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-func StartConsumer(ctag string, messageEventsPublisher ports.MessageEventsPublisher) error {
+func StartConsumer(ctx context.Context, ctag string, messageEventsPublisher ports.MessageEventsPublisher) error {
 	configuration := configs.GetRabbitConfiguration()
 	queue := NewQueue(configuration.Host, configuration.ConsumerQueueName, configuration.UsersExchangeName)
 	recognitionQueue := NewQueue(configuration.Host, configuration.RecognitionQueueName, configuration.RecognitionExchangeName)
@@ -43,6 +44,11 @@ func StartConsumer(ctag string, messageEventsPublisher ports.MessageEventsPublis
 
 		HandleMessageRecognized(event.MessageID, event.Content, messageEventsPublisher)
 	})
+
+	<-ctx.Done()
+
+	queue.Close()
+	recognitionQueue.Close()
 
 	return nil
 }
