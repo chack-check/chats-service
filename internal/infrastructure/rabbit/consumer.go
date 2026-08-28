@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"log"
 
+	"chats-service/configs"
+	"chats-service/internal/application/ports"
+
 	"github.com/getsentry/sentry-go"
 )
 
-func StartConsumer(ctag string) error {
-	queue := NewQueue(Settings.APP_RABBIT_HOST, Settings.APP_RABBIT_CONSUMER_QUEUE_NAME, Settings.APP_RABBIT_USERS_EXCHANGE_NAME)
-	recognitionQueue := NewQueue(Settings.APP_RABBIT_HOST, Settings.APP_RABBIT_RECOGNITION_QUEUE_NAME, Settings.APP_RABBIT_RECOGNITION_EXCHANGE_NAME)
+func StartConsumer(ctag string, messageEventsPublisher ports.MessageEventsPublisher) error {
+	configuration := configs.GetRabbitConfiguration()
+	queue := NewQueue(configuration.Host, configuration.ConsumerQueueName, configuration.UsersExchangeName)
+	recognitionQueue := NewQueue(configuration.Host, configuration.RecognitionQueueName, configuration.RecognitionExchangeName)
 
 	queue.Consume(func(msg []byte) {
 		log.Printf("fetched event: %s", string(msg))
@@ -37,7 +41,7 @@ func StartConsumer(ctag string) error {
 			return
 		}
 
-		HandleMessageRecognized(event.MessageID, event.Content)
+		HandleMessageRecognized(event.MessageID, event.Content, messageEventsPublisher)
 	})
 
 	return nil

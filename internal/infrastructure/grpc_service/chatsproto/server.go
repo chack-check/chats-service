@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"chats-service/internal/application/controllers"
+	"chats-service/internal/application/usecases"
 	"chats-service/internal/infrastructure/database"
+	"chats-service/internal/infrastructure/database/repositories"
 	"chats-service/internal/infrastructure/grpc_service/chatsproto/chatsprotobuf"
 	"chats-service/internal/infrastructure/grpc_service/usersproto"
 	"chats-service/internal/infrastructure/redisdb"
@@ -30,13 +31,13 @@ func (ChatsServer) GetChatById(ctx context.Context, request *chatsprotobuf.GetCh
 		return nil, ErrIncorrectToken
 	}
 
-	controller := controllers.NewGetChatController(
-		database.NewChatsAdapter(*database.DatabaseConnection),
-		usersproto.NewUsersAdapter(usersproto.UsersClientConnect()),
-		redisdb.NewUserActionsAdapter(redisdb.RedisConnection),
+	useCase := usecases.NewGetChatUseCase(
+		repositories.NewChatsRepository(*database.DatabaseConnection),
+		usersproto.NewUsersRepository(usersproto.UsersClientConnect()),
+		redisdb.NewUserActionsRepository(redisdb.RedisConnection),
 	)
 
-	chat, err := controller.Execute(tokenSubject.UserId, int(request.Id))
+	chat, err := useCase.Execute(tokenSubject.UserId, int(request.Id))
 	if err != nil {
 		return nil, err
 	}
@@ -56,11 +57,11 @@ func (ChatsServer) GetMessageById(ctx context.Context, request *chatsprotobuf.Ge
 		return nil, ErrIncorrectToken
 	}
 
-	controller := controllers.NewGetConcreteMessageController(
-		database.NewMessagesAdapter(*database.DatabaseConnection),
+	useCase := usecases.NewGetConcreteMessageUseCase(
+		repositories.NewMessagesRepository(*database.DatabaseConnection),
 	)
 
-	message, err := controller.Execute(int(request.Id), tokenSubject.UserId)
+	message, err := useCase.Execute(int(request.Id), tokenSubject.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -80,10 +81,10 @@ func (ChatsServer) GetChatsByIds(ctx context.Context, request *chatsprotobuf.Get
 		return nil, ErrIncorrectToken
 	}
 
-	controller := controllers.NewGetChatsByIdsController(
-		database.NewChatsAdapter(*database.DatabaseConnection),
-		usersproto.NewUsersAdapter(usersproto.UsersClientConnect()),
-		redisdb.NewUserActionsAdapter(redisdb.RedisConnection),
+	useCase := usecases.NewGetChatsByIdsUseCase(
+		repositories.NewChatsRepository(*database.DatabaseConnection),
+		usersproto.NewUsersRepository(usersproto.UsersClientConnect()),
+		redisdb.NewUserActionsRepository(redisdb.RedisConnection),
 	)
 
 	var ids []int
@@ -91,7 +92,7 @@ func (ChatsServer) GetChatsByIds(ctx context.Context, request *chatsprotobuf.Get
 		ids = append(ids, int(id))
 	}
 
-	chats := controller.Execute(ids, tokenSubject.UserId)
+	chats := useCase.Execute(ids, tokenSubject.UserId)
 	var chatsResponse []*chatsprotobuf.ChatResponse
 	for _, chat := range chats {
 		chatsResponse = append(chatsResponse, ChatModelToProto(chat))
@@ -112,8 +113,8 @@ func (ChatsServer) GetMessagesByIds(ctx context.Context, request *chatsprotobuf.
 		return nil, ErrIncorrectToken
 	}
 
-	controller := controllers.NewGetMessagesByIdsController(
-		database.NewMessagesAdapter(*database.DatabaseConnection),
+	useCase := usecases.NewGetMessagesByIdsUseCase(
+		repositories.NewMessagesRepository(*database.DatabaseConnection),
 	)
 
 	var ids []int
@@ -121,7 +122,7 @@ func (ChatsServer) GetMessagesByIds(ctx context.Context, request *chatsprotobuf.
 		ids = append(ids, int(id))
 	}
 
-	messages := controller.Execute(ids, tokenSubject.UserId)
+	messages := useCase.Execute(ids, tokenSubject.UserId)
 
 	var messagesResponse []*chatsprotobuf.MessageResponse
 	for _, message := range messages {
@@ -143,9 +144,9 @@ func (ChatsServer) GetMessagesByChatId(ctx context.Context, request *chatsprotob
 		return nil, ErrIncorrectToken
 	}
 
-	controller := controllers.NewGetChatMessagesController(
-		database.NewMessagesAdapter(*database.DatabaseConnection),
-		database.NewChatsAdapter(*database.DatabaseConnection),
+	useCase := usecases.NewGetChatMessagesUseCase(
+		repositories.NewMessagesRepository(*database.DatabaseConnection),
+		repositories.NewChatsRepository(*database.DatabaseConnection),
 	)
 
 	var offsetValue int
@@ -162,7 +163,7 @@ func (ChatsServer) GetMessagesByChatId(ctx context.Context, request *chatsprotob
 		limitValue = 0
 	}
 
-	messages, err := controller.Execute(int(request.ChatId), tokenSubject.UserId, offsetValue, limitValue)
+	messages, err := useCase.Execute(int(request.ChatId), tokenSubject.UserId, offsetValue, limitValue)
 	if err != nil {
 		return nil, err
 	}

@@ -1,13 +1,15 @@
 package redisdb
 
 import (
+	"chats-service/configs"
 	"context"
 
 	"github.com/redis/go-redis/v9"
 )
 
 func InitRedisConnection() *redis.Client {
-	opt, err := redis.ParseURL(Settings.APP_REDIS_URL)
+	configuration := configs.GetRedisConfiguration()
+	opt, err := redis.ParseURL(configuration.URL.String())
 	if err != nil {
 		panic(err)
 	}

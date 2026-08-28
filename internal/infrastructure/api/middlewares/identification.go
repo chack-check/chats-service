@@ -1,13 +1,13 @@
 package middlewares
 
 import (
+	"chats-service/configs"
 	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
 
-	"chats-service/internal/infrastructure/api/settings"
 	"github.com/getsentry/sentry-go"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -22,9 +22,10 @@ type TokenSubject struct {
 }
 
 func GetTokenFromString(tokenString string) (*jwt.Token, error) {
+	configuration := configs.GetAPIConfiguration()
 	log.Printf("Fetching token from string")
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		return []byte(settings.Settings.APP_SECRET_KEY), nil
+		return []byte(configuration.SecretKey), nil
 	})
 
 	log.Printf("Fetched token = %+v. err = %v", token, err)

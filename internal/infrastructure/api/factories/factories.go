@@ -3,8 +3,8 @@ package factories
 import (
 	"time"
 
+	"chats-service/internal/application/dtos"
 	"chats-service/internal/domain/constants"
-	"chats-service/internal/domain/dtos"
 	"chats-service/internal/domain/entities"
 	"chats-service/internal/infrastructure/api/graph/model"
 )

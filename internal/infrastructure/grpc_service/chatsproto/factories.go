@@ -3,7 +3,7 @@ package chatsproto
 import (
 	"time"
 
-	"chats-service/internal/domain/dtos"
+	"chats-service/internal/application/dtos"
 	"chats-service/internal/domain/entities"
 	"chats-service/internal/infrastructure/grpc_service/chatsproto/chatsprotobuf"
 )

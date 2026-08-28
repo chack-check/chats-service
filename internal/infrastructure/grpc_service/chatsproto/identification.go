@@ -1,6 +1,7 @@
 package chatsproto
 
 import (
+	"chats-service/configs"
 	"encoding/json"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -12,8 +13,9 @@ type TokenSubject struct {
 }
 
 func GetTokenFromString(tokenString string) (*jwt.Token, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return []byte(Settings.APP_SECRET_KEY), nil
+	configuration := configs.GetAPIConfiguration()
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		return []byte(configuration.SecretKey), nil
 	})
 
 	return token, err

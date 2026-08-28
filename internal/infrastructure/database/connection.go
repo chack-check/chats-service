@@ -1,6 +1,7 @@
 package database
 
 import (
+	"chats-service/configs"
 	"errors"
 	"fmt"
 
@@ -9,7 +10,8 @@ import (
 )
 
 func GetConnection() *gorm.DB {
-	db, err := gorm.Open(postgres.Open(Settings.APP_DATABASE_DSN), &gorm.Config{})
+	configuration := configs.GetDatabaseConfiguration()
+	db, err := gorm.Open(postgres.Open(configuration.DSN.String()), &gorm.Config{})
 	if err != nil {
 		panic(errors.Join(fmt.Errorf("error when connecting to database"), err))
 	}

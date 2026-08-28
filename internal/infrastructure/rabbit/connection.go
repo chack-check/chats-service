@@ -1,6 +1,7 @@
 package rabbit
 
 import (
+	"chats-service/configs"
 	"context"
 	"encoding/json"
 	"log"
@@ -139,6 +140,6 @@ func NewEventsRabbitConnection(host string, exchangeName string) *RabbitConnecti
 }
 
 var EventsRabbitConnection *RabbitConnection = NewEventsRabbitConnection(
-	Settings.APP_RABBIT_HOST,
-	Settings.APP_RABBIT_PUBLISHER_EXCHANGE_NAME,
+	configs.GetRabbitConfiguration().Host,
+	configs.GetRabbitConfiguration().PublisherExchangeName,
 )

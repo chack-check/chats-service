@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"log"
 
-	"chats-service/internal/application/controllers"
+	"chats-service/internal/application/dtos"
+	"chats-service/internal/application/ports"
+	"chats-service/internal/application/usecases"
 	"chats-service/internal/domain/constants"
-	"chats-service/internal/domain/dtos"
 	"chats-service/internal/infrastructure/database"
+	"chats-service/internal/infrastructure/database/repositories"
 )
 
 type SystemEvent struct {
@@ -38,16 +40,16 @@ func HandleUserCreated(event SystemEvent) {
 	}
 
 	data := dtos.NewCreateChatData(constants.SavedMessagesChatType, nil, nil, []int{}, &eventUser.Id)
-	controller := controllers.NewCreateSavedMessagesChatController(
-		database.NewChatsAdapter(*database.DatabaseConnection),
+	useCase := usecases.NewCreateSavedMessagesChatUseCase(
+		repositories.NewChatsRepository(*database.DatabaseConnection),
 	)
-	controller.Execute(data, eventUser.Id)
+	useCase.Execute(data, eventUser.Id)
 }
 
-func HandleMessageRecognized(messageId int, content string) {
-	controller := controllers.NewRecognizeMessageController(
-		database.NewMessagesAdapter(*database.DatabaseConnection),
-		NewMessageEventsAdapter(*EventsRabbitConnection),
+func HandleMessageRecognized(messageId int, content string, publisher ports.MessageEventsPublisher) {
+	useCase := usecases.NewRecognizeMessageUseCase(
+		repositories.NewMessagesRepository(*database.DatabaseConnection),
+		publisher,
 	)
-	controller.Execute(messageId, content)
+	useCase.Execute(messageId, content)
 }

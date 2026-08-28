@@ -4,6 +4,7 @@ go 1.26
 
 require (
 	github.com/99designs/gqlgen v0.17.94
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/getsentry/sentry-go v0.49.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/lib/pq v1.12.3
