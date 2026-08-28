@@ -77,7 +77,7 @@ jobs:
         run: go test -v -coverprofile=coverage.txt ./...
 
       - name: Post Coverage Comment
-        uses: fgrosse/go-coverage-report@v1
+        uses: fgrosse/go-coverage-report@v1.3.1
         with:
           coverage-file: coverage.txt
           root-package: chats-service
