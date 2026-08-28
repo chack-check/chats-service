@@ -16,19 +16,29 @@ $ docker network create chack-check-network
 После этого можно запустить приложение через `make`:
 
 ```
-$ make dev
+$ make up
 ```
 
 ## GraphiQL
 
 После запуска локально, сервис будет доступен по адресу http://localhost:8001/api/v1/chats
 
+## Pre-commit
+
+Если вы собираетесь контрибьютить в проект, вам нужно установить [pre-commit](https://pre-commit.com/) и [golangci-lint](https://golangci-lint.run/docs/welcome/install/local/), после чего выполнить
+
+```bash
+$ pre-commit install
+```
+
+После этого засетапятся все необходимые хуки с линтерами, форматтерами и тестами.
+
 ## Регенерация схемы GraphQL
 
-Для регенерации схемы достаточно перейти в директорию `/api/v1/` и запустить там:
+Для регенерации схемы достаточно запустить команду:
 
 ```
-$ go run github.com/99designs/gqlgen generate
+$ make generate-gql
 ```
 
 ## Регенерация protobuf
