@@ -1,0 +1,84 @@
+name: Branch CI
+
+on:
+  push:
+    branches:
+      - development
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-images:
+    name: Build image / ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - api
+          - grpcserver
+          - consumer
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build ${{ matrix.target }} image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: false
+          cache-from: type=gha,scope=build-${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=build-${{ matrix.target }}
+
+  lint:
+    name: Lint
+    needs: build-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+
+  tests:
+    name: Tests and coverage
+    needs: build-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Run tests with coverage
+        run: go test -v -coverprofile=coverage.txt ./...
+
+      - name: Post Coverage Comment
+        uses: fgrosse/go-coverage-report@v1
+        with:
+          coverage-file: coverage.txt
+          root-package: chats-service
+          github-token: ${{ secrets.GITHUB_TOKEN }}
